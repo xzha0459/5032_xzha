@@ -1,14 +1,10 @@
 <template>
   <section class="hero-section">
-    <div class="container">
-      <div class="row justify-content-center align-items-center min-vh-100">
-        <div class="col-12 col-6">
-          <div class="hero-content text-center">
-            <h1 class="mb-4">You're Not Alone in Your Journey</h1>
-            <p class="lead mb-4">Mental health is essential...</p>
-            <button class="btn btn-primary">Get Started</button>
-          </div>
-        </div>
+    <div class="hero-container">
+      <div class="hero-content">
+        <h1 class="hero-title">You're Not Alone in Your Journey</h1>
+        <p class="hero-subtitle">Mental health is essential...</p>
+        <button class="btn btn-primary">GET STARTED</button>
       </div>
     </div>
   </section>
@@ -27,25 +23,56 @@
   color: var(--text-light);
   margin: 0;
   padding: 0;
+  min-height: 100vh;
+}
+
+.hero-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
 }
 
 .hero-content {
   text-align: center;
-  max-width: 800px;
-  padding: 2rem;
+  max-width: 900px;
+  width: 100%;
 }
 
-.hero-content h1 {
+.hero-title {
   font-size: 3.5rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
   text-shadow: 2px 2px 4px var(--shadow-dark);
+  line-height: 1.2;
 }
 
-.hero-content p {
+/* >=768px */
+@media (min-width: 768px) {
+  .hero-title {
+    white-space: nowrap;
+  }
+}
+
+/* <768px  */
+@media (max-width: 767px) {
+  .hero-title {
+    font-size: 2.8rem;
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  .hero-container {
+    padding: 1rem;
+  }
+}
+
+.hero-subtitle {
   font-size: 1.5rem;
   margin-bottom: 2rem;
   opacity: 0.9;
+  line-height: 1.4;
 }
 
 .btn {
