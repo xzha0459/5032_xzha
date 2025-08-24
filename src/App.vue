@@ -1,10 +1,14 @@
 <script setup>
-import HomePage from "@/page/HomePage.vue";
+import NavigationBar from '@/components/NavigationBar.vue'
 </script>
 
 <template>
   <div id="app">
-    <HomePage />
+    <!-- 导航栏始终显示 -->
+    <NavigationBar />
+
+    <!-- Router View - 显示当前路由的页面 -->
+    <router-view />
   </div>
 </template>
 

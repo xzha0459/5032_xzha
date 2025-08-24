@@ -1,37 +1,55 @@
-/* color palette from <https://github.com/vuejs/theme> */
 :root {
-  --vt-c-white: #ffffff;
-  --vt-c-white-soft: #f8f8f8;
-  --vt-c-white-mute: #f2f2f2;
+  --forest-light: #f5f5f0;
+  --forest-sage: #d4d4c4;
+  --forest-medium: #8b9a8b;
+  --forest-deep: #5a6b5a;
+  --forest-dark: #2d3a2d;
 
-  --vt-c-black: #181818;
-  --vt-c-black-soft: #222222;
-  --vt-c-black-mute: #282828;
+  --forest-accent: #7a8b7a;
+  --forest-muted: #a8b8a8;
 
-  --vt-c-indigo: #2c3e50;
+  --text-primary: var(--forest-dark);
+  --text-secondary: var(--forest-deep);
+  --text-light: var(--forest-light);
 
-  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
+  --bg-primary: var(--forest-light);
+  --bg-secondary: var(--forest-sage);
+  --bg-accent: var(--forest-medium);
 
-  --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  --border-light: var(--forest-sage);
+  --border-medium: var(--forest-medium);
+  --border-dark: var(--forest-deep);
+
+  --shadow-light: rgba(45, 58, 45, 0.1);
+  --shadow-medium: rgba(45, 58, 45, 0.2);
+  --shadow-dark: rgba(45, 58, 45, 0.3);
 }
 
-/* semantic color variables for this project */
 :root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
+  --vt-c-white: var(--forest-light);
+  --vt-c-white-soft: var(--forest-sage);
+  --vt-c-white-mute: var(--forest-muted);
 
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
+  --vt-c-black: var(--forest-dark);
+  --vt-c-black-soft: var(--forest-deep);
+  --vt-c-black-mute: var(--forest-medium);
 
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
+  --vt-c-indigo: var(--forest-deep);
+
+  --vt-c-divider-light-1: var(--border-light);
+  --vt-c-divider-light-2: var(--border-medium);
+  --vt-c-divider-dark-1: var(--border-dark);
+  --vt-c-divider-dark-2: var(--forest-medium);
+
+  --color-background: var(--bg-primary);
+  --color-background-soft: var(--bg-secondary);
+  --color-background-mute: var(--forest-muted);
+
+  --color-border: var(--border-light);
+  --color-border-hover: var(--border-medium);
+
+  --color-heading: var(--text-primary);
+  --color-text: var(--text-secondary);
 
   --section-gap: 160px;
 }
