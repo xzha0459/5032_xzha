@@ -1,10 +1,18 @@
 <!-- src/page/RegisterPage.vue -->
 <template>
   <div class="register-page">
-    <div class="back-link">
-      <router-link to="/" class="back-home">← Back to Home</router-link>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-12 col-8">
+          <div class="text-center mb-4">
+            <router-link to="/" class="back-home">
+              ← Back to Home
+            </router-link>
+          </div>
+          <RegisterForm />
+        </div>
+      </div>
     </div>
-    <RegisterForm />
   </div>
 </template>
 
@@ -31,11 +39,6 @@ export default {
   padding: 2rem 0;
 }
 
-.back-link {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
 .back-home {
   color: var(--forest-dark);
   text-decoration: none;
@@ -45,6 +48,7 @@ export default {
   transition: all 0.3s ease;
   background: var(--forest-light);
   border: 1px solid var(--border-light);
+  display: inline-block;
 }
 
 .back-home:hover {

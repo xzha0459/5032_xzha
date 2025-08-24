@@ -1,9 +1,15 @@
 <template>
   <section class="hero-section">
-    <div class="hero-content">
-      <h1>You're Not Alone in Your Journey</h1>
-      <p>Mental health is essential...</p>
-      <button class="btn btn-primary">Get Started</button>
+    <div class="container">
+      <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-12 col-6">
+          <div class="hero-content text-center">
+            <h1 class="mb-4">You're Not Alone in Your Journey</h1>
+            <p class="lead mb-4">Mental health is essential...</p>
+            <button class="btn btn-primary">Get Started</button>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -18,11 +24,7 @@
     var(--forest-deep) 75%,
     var(--forest-dark) 100%
   );
-  min-height: 100vh;
   color: var(--text-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin: 0;
   padding: 0;
 }
@@ -68,21 +70,5 @@
   background: var(--forest-deep);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px var(--shadow-dark);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .hero-content h1 {
-    font-size: 2.5rem;
-  }
-
-  .hero-content p {
-    font-size: 1.2rem;
-  }
-
-  .btn {
-    padding: 0.8rem 2rem;
-    font-size: 1rem;
-  }
 }
 </style>
