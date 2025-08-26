@@ -2,7 +2,7 @@
   <nav class="navbar">
     <div class="nav-container">
       <!-- Logo/Brand -->
-      <div class="nav-brand">Logo</div>
+      <div class="nav-brand">MindU</div>
 
       <!-- Right side buttons -->
       <div class="nav-buttons">
@@ -39,9 +39,9 @@ const goToRegister = () => {
 }
 
 .nav-container {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 1rem 2rem;
+  padding: 1rem 8rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -51,7 +51,6 @@ const goToRegister = () => {
   font-size: 1.8rem;
   font-weight: 700;
   color: var(--forest-dark);
-  text-transform: uppercase;
   letter-spacing: 2px;
 }
 
