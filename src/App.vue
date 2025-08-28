@@ -1,11 +1,20 @@
 <script setup>
 import NavigationBar from '@/components/NavigationBar.vue'
+import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+
+const route = useRoute()
+
+// 在注册页面时不显示导航栏
+const showNavigationBar = computed(() => {
+  return route.name !== 'Register'
+})
 </script>
 
 <template>
   <div id="app">
-    <!-- 导航栏始终显示 -->
-    <NavigationBar />
+    <!-- 导航栏条件显示 -->
+    <NavigationBar v-if="showNavigationBar" />
 
     <!-- Router View - 显示当前路由的页面 -->
     <router-view />

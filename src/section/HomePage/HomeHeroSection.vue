@@ -3,7 +3,7 @@
     <div class="hero-container">
       <div class="hero-content">
         <h1 class="hero-title">You're Not Alone in Your Journey</h1>
-        <p class="hero-subtitle">Mental health is essential...</p>
+        <p class="hero-subtitle">Pay attention to mental health is essential...</p>
         <button class="btn btn-primary">GET STARTED</button>
       </div>
     </div>
