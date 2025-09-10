@@ -6,7 +6,7 @@
 
       <!-- Navigation Links -->
       <div class="nav-links">
-        <button @click="goToEmotionManagement" class="nav-link">情绪管理</button>
+        <button @click="goToEmotionManagement" class="nav-link">Wellbeing</button>
       </div>
 
       <!-- Right side content -->

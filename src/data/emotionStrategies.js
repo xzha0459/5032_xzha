@@ -6,7 +6,7 @@ export const mainCategories = [
   { id: 'sleep', name: 'Sleep Improvement' }
 ]
 
-export const techniques = [
+export const strategies = [
   // Anxiety Management Techniques
   {
     id: 'anxiety-breathing',

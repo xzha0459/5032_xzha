@@ -2,8 +2,9 @@
   <div class="emotion-management-page">
     <div class="page-header">
       <div class="container">
-        <h1 class="page-title">心理健康资源库</h1>
-        <p class="page-subtitle">获取专业的情绪管理技巧、心理健康文章和实用工具，提升你的心理健康水平</p>
+        <h1 class="page-title">Mental Health Resource Center</h1>
+        <p class="page-subtitle">
+          Discover professional skills, helpful articles, and practical tools to enhance your mental wellness</p>
       </div>
     </div>
 
@@ -16,7 +17,7 @@
 </template>
 
 <script>
-import SkillDisplaySection from '@/section/EmotionManagementPage/SkillDisplaySection.vue'
+import SkillDisplaySection from '@/section/EmotionManagementPage/StrategyDisplaySection.vue'
 
 export default {
   name: 'EmotionManagementPage',
