@@ -4,6 +4,7 @@ import HomePage from '@/page/HomePage.vue'
 import RegisterPage from '@/page/RegisterPage.vue'
 import LoginPage from '@/page/LoginPage.vue'
 import AdminPage from '@/page/AdminPage.vue'
+import EmotionManagementPage from '@/page/EmotionManagementPage.vue'
 import { useAuth } from '@/composables/useAuth.js'
 
 const routes = [
@@ -21,6 +22,11 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: RegisterPage,
+  },
+  {
+    path: '/emotion-management',
+    name: 'EmotionManagement',
+    component: EmotionManagementPage,
   },
   {
     path: '/admin',

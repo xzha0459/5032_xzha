@@ -4,6 +4,11 @@
       <!-- Logo/Brand -->
       <div class="nav-brand" @click="goToHome">MindU</div>
 
+      <!-- Navigation Links -->
+      <div class="nav-links">
+        <button @click="goToEmotionManagement" class="nav-link">情绪管理</button>
+      </div>
+
       <!-- Right side content -->
       <div class="nav-buttons">
         <!-- Not logged in - show Login/Register buttons -->
@@ -91,6 +96,10 @@ const goToRegister = () => {
   router.push('/register')
 }
 
+const goToEmotionManagement = () => {
+  router.push('/emotion-management')
+}
+
 const goToAdmin = () => {
   router.push('/admin')
   closeDropdown()
@@ -165,6 +174,29 @@ onMounted(() => {
 }
 
 .nav-brand:hover {
+  color: var(--forest-deep);
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.nav-link {
+  background: none;
+  border: none;
+  color: var(--forest-dark);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  background: var(--forest-sage);
   color: var(--forest-deep);
 }
 
