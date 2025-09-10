@@ -9,7 +9,22 @@
             <!-- Form Fields -->
             <div v-for="field in formFields" :key="field.name" class="form-group mb-3">
               <label>{{ field.label }}</label>
+              <!-- Select field for role -->
+              <select
+                v-if="field.type === 'select'"
+                v-model="form[field.name]"
+                @change="validateField(field.name)"
+                class="form-control"
+                :class="{ error: getFieldError(field.name), valid: getFieldValid(field.name) }"
+              >
+                <option value="" disabled>{{ field.placeholder }}</option>
+                <option v-for="option in field.options" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <!-- Input field for other types -->
               <input
+                v-else
                 v-model="form[field.name]"
                 @input="validateField(field.name)"
                 :type="field.type"
@@ -53,6 +68,7 @@
                     <h4 class="username">{{ user.username }}</h4>
                     <p class="email">{{ user.email }}</p>
                     <p class="age">Age: {{ user.age }}</p>
+                    <p class="role">Role: {{ user.role || 'user' }}</p>
                   </div>
                 </div>
                 <button @click="removeUser(user.uid)" class="remove-btn" title="Remove user">×</button>
@@ -88,6 +104,7 @@ export default {
         password: '',
         age: null,
         username: '',
+        role: 'user', // Default role
       },
       // Validation states
       fieldErrors: {},
@@ -149,6 +166,21 @@ export default {
             if (value === 'admin') return 'Username "admin" is reserved'
             return ''
           }
+        },
+        {
+          name: 'role',
+          label: 'Role *',
+          type: 'select',
+          placeholder: 'Select your role',
+          options: [
+            { value: 'user', label: 'User' },
+            { value: 'admin', label: 'Administrator' }
+          ],
+          validator: (value) => {
+            if (!value) return 'Role is required'
+            if (!['user', 'admin'].includes(value)) return 'Invalid role selected'
+            return ''
+          }
         }
       ]
     }
@@ -163,6 +195,13 @@ export default {
     this.formFields.forEach(field => {
       this.fieldErrors[field.name] = ''
       this.fieldValids[field.name] = false
+    })
+
+    // Validate fields with default values
+    this.formFields.forEach(field => {
+      if (this.form[field.name]) {
+        this.validateField(field.name)
+      }
     })
 
     // Load users from Firestore
@@ -261,6 +300,7 @@ export default {
           email: this.form.email,
           username: this.form.username,
           age: this.form.age,
+          role: this.form.role || 'user', // Default role assignment
           createdAt: new Date().toISOString()
         })
 
@@ -302,6 +342,7 @@ export default {
         password: '',
         age: null,
         username: '',
+        role: 'user', // Reset to default role
       }
 
       this.formFields.forEach(field => {
@@ -348,6 +389,15 @@ label {
 .form-control:focus {
   outline: none;
   border-color: var(--forest-deep);
+}
+
+.form-control select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1em;
+  padding-right: 2.5rem;
 }
 
 .form-control.valid {
@@ -489,9 +539,17 @@ label {
 }
 
 .age {
-  margin: 0;
+  margin: 0 0 0.25rem 0;
   font-size: 0.875rem;
   color: #888;
+}
+
+.role {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
 .remove-btn {

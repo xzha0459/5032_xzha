@@ -14,13 +14,16 @@
                 v-model="form.email"
                 @input="validateField('email')"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Enter your email address"
                 class="form-control"
                 :class="{ error: getFieldError('email'), valid: getFieldValid('email') }"
               />
               <span v-if="getFieldError('email')" class="error-msg">
                 {{ getFieldError('email') }}
               </span>
+              <small class="form-text text-muted">
+                Use the email address you registered with, not your username
+              </small>
             </div>
 
             <!-- Password Field -->
@@ -194,11 +197,11 @@ export default {
 
         // Handle specific Firebase errors
         if (error.code === 'auth/user-not-found') {
-          this.formErrors.push('No account found with this email address')
+          this.formErrors.push('No account found with this email address. Please use the email address you registered with, not your username.')
         } else if (error.code === 'auth/wrong-password') {
           this.formErrors.push('Incorrect password')
         } else if (error.code === 'auth/invalid-email') {
-          this.formErrors.push('Invalid email address')
+          this.formErrors.push('Invalid email address. Please enter a valid email address.')
         } else if (error.code === 'auth/user-disabled') {
           this.formErrors.push('This account has been disabled')
         } else if (error.code === 'auth/too-many-requests') {
@@ -206,7 +209,7 @@ export default {
         } else if (error.code === 'auth/network-request-failed') {
           this.formErrors.push('Network error. Please check your connection.')
         } else {
-          this.formErrors.push('Failed to sign in. Please try again.')
+          this.formErrors.push('Failed to sign in. Please make sure you are using your email address and correct password.')
         }
       }
     },
@@ -276,6 +279,16 @@ label {
   font-size: 0.875rem;
   margin-top: 0.25rem;
   display: block;
+}
+
+.form-text {
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.text-muted {
+  color: #6c757d;
 }
 
 .btn-submit {

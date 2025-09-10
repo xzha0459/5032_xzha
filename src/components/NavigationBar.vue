@@ -2,7 +2,7 @@
   <nav class="navbar">
     <div class="nav-container">
       <!-- Logo/Brand -->
-      <div class="nav-brand">MindU</div>
+      <div class="nav-brand" @click="goToHome">MindU</div>
 
       <!-- Right side content -->
       <div class="nav-buttons">
@@ -22,6 +22,18 @@
             </button>
 
             <div v-if="isDropdownOpen" class="dropdown-menu">
+              <div class="dropdown-header">
+                <div class="user-info-dropdown">
+                  <div class="user-avatar-small">{{ userInitial }}</div>
+                  <div class="user-details-dropdown">
+                    <div class="user-name-dropdown">{{ userDisplayName }}</div>
+                    <div class="user-role-dropdown">{{ userRoleDisplay }}</div>
+                  </div>
+                </div>
+              </div>
+              <button v-if="isAdminUser" @click="goToAdmin" class="dropdown-item admin-item">
+                Admin Panel
+              </button>
               <button @click="logout" class="dropdown-item logout-item">
                 Logout
               </button>
@@ -36,15 +48,15 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
-import { auth, db } from '@/firebase.js'
+import { useAuth } from '@/composables/useAuth.js'
+import { getRoleDisplayName } from '@/utils/permissions.js'
 
 const router = useRouter()
 
-// User state
-const user = ref(null)
-const userProfile = ref(null)
+// Use the auth composable
+const { user, userProfile, userRole, isAdminUser, logout: authLogout } = useAuth()
+
+// Local state for dropdown
 const isDropdownOpen = ref(false)
 const dropdownRef = ref(null)
 
@@ -62,29 +74,26 @@ const userInitial = computed(() => {
   return name.charAt(0).toUpperCase()
 })
 
-// Fetch user profile from Firestore
-const fetchUserProfile = async (uid) => {
-  try {
-    const userDoc = await getDoc(doc(db, 'users', uid))
-    if (userDoc.exists()) {
-      userProfile.value = userDoc.data()
-    } else {
-      console.log('No user profile found in Firestore')
-      userProfile.value = null
-    }
-  } catch (error) {
-    console.error('Error fetching user profile:', error)
-    userProfile.value = null
-  }
-}
+const userRoleDisplay = computed(() => {
+  return getRoleDisplayName(userRole.value)
+})
 
 // Navigation methods
+const goToHome = () => {
+  router.push('/')
+}
+
 const goToLogin = () => {
   router.push('/login')
 }
 
 const goToRegister = () => {
   router.push('/register')
+}
+
+const goToAdmin = () => {
+  router.push('/admin')
+  closeDropdown()
 }
 
 // Dropdown methods
@@ -99,7 +108,7 @@ const closeDropdown = () => {
 // Logout method
 const logout = async () => {
   try {
-    await signOut(auth)
+    await authLogout()
     closeDropdown()
     router.push('/')
   } catch (error) {
@@ -116,24 +125,11 @@ const handleClickOutside = (event) => {
 
 // Lifecycle
 onMounted(() => {
-  // Listen for auth state changes
-  const unsubscribe = onAuthStateChanged(auth, async (userData) => {
-    user.value = userData
-    if (userData) {
-      // User is logged in, fetch profile from Firestore
-      await fetchUserProfile(userData.uid)
-    } else {
-      // User is logged out, clear profile
-      userProfile.value = null
-    }
-  })
-
   // Add click outside listener
   document.addEventListener('click', handleClickOutside)
 
   // Cleanup function
   onUnmounted(() => {
-    unsubscribe()
     document.removeEventListener('click', handleClickOutside)
   })
 })
@@ -163,6 +159,13 @@ onMounted(() => {
   font-weight: 700;
   color: var(--forest-dark);
   letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.nav-brand:hover {
+  color: var(--forest-deep);
 }
 
 .nav-buttons {
@@ -259,7 +262,7 @@ onMounted(() => {
   border: 1px solid var(--border-light);
   border-radius: 8px;
   box-shadow: 0 4px 12px var(--shadow-medium);
-  min-width: 120px;
+  min-width: 200px;
   z-index: 1000;
   margin-top: 0.5rem;
   overflow: hidden;
@@ -293,6 +296,61 @@ onMounted(() => {
 .logout-item:hover {
   background: #f8d7da;
   color: #721c24;
+}
+
+/* Dropdown header styles */
+.dropdown-header {
+  padding: 1rem;
+  background: var(--forest-sage);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.user-info-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--forest-dark);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.user-details-dropdown {
+  flex: 1;
+}
+
+.user-name-dropdown {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--forest-dark);
+  margin-bottom: 0.25rem;
+}
+
+.user-role-dropdown {
+  font-size: 0.8rem;
+  color: var(--forest-medium);
+  text-transform: capitalize;
+}
+
+
+.admin-item {
+  color: var(--forest-dark);
+  font-weight: 600;
+}
+
+.admin-item:hover {
+  background: var(--forest-sage);
+  color: var(--forest-deep);
 }
 
 /* Responsive */
