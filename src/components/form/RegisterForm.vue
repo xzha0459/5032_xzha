@@ -44,9 +44,9 @@
           <!-- Users List -->
           <div class="dynamic-data-section mt-5">
             <h3 class="text-center mb-4">Registered Users</h3>
-            
+
             <div v-if="registeredUsers.length > 0" class="users-list">
-              <div class="user-card" v-for="(user, index) in registeredUsers" :key="index">
+              <div class="user-card" v-for="user in registeredUsers" :key="user.uid">
                 <div class="user-info">
                   <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
                   <div class="user-details">
@@ -55,7 +55,7 @@
                     <p class="age">Age: {{ user.age }}</p>
                   </div>
                 </div>
-                <button @click="removeUser(index)" class="remove-btn" title="Remove user">×</button>
+                <button @click="removeUser(user.uid)" class="remove-btn" title="Remove user">×</button>
               </div>
             </div>
 
@@ -67,6 +67,7 @@
               <button @click="clearAllUsers" class="btn-clear-all">Clear All Users</button>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -74,6 +75,10 @@
 </template>
 
 <script>
+import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { collection, onSnapshot, deleteDoc, doc, query, orderBy, setDoc } from 'firebase/firestore'
+import { auth, db } from '@/firebase.js'
+
 export default {
   name: 'RegisterForm',
   data() {
@@ -91,8 +96,9 @@ export default {
       formErrors: [],
       isSubmitting: false,
       success: false,
-      // Dynamic data
+      // Firebase related states
       registeredUsers: [],
+      unsubscribe: null,
       // Form field configuration
       formFields: [
         {
@@ -104,9 +110,6 @@ export default {
             if (!value) return 'Email is required'
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
             if (!emailRegex.test(value)) return 'Invalid email format'
-            if (this.registeredUsers.some(user => user.email === value)) {
-              return 'Email already registered'
-            }
             return ''
           }
         },
@@ -143,9 +146,6 @@ export default {
             if (!/^[a-zA-Z0-9_]+$/.test(value)) {
               return 'Username can only contain letters, numbers, underscore'
             }
-            if (this.registeredUsers.some(user => user.username === value)) {
-              return 'Username already taken'
-            }
             if (value === 'admin') return 'Username "admin" is reserved'
             return ''
           }
@@ -159,12 +159,21 @@ export default {
     }
   },
   mounted() {
-    this.loadUsersFromStorage()
     // Initialize validation states
     this.formFields.forEach(field => {
       this.fieldErrors[field.name] = ''
       this.fieldValids[field.name] = false
     })
+
+    // Load users from Firestore
+    this.loadUsersFromFirestore()
+  },
+
+  beforeUnmount() {
+    // Clean up Firestore listener
+    if (this.unsubscribe) {
+      this.unsubscribe()
+    }
   },
   methods: {
     // Validation helpers
@@ -174,7 +183,7 @@ export default {
 
       const value = this.form[fieldName]
       const error = field.validator(value)
-      
+
       this.fieldErrors[fieldName] = error
       this.fieldValids[fieldName] = !error
     },
@@ -187,42 +196,46 @@ export default {
       return this.fieldValids[fieldName] || false
     },
 
-    // Local Storage methods
-    loadUsersFromStorage() {
-      try {
-        const storedUsers = localStorage.getItem('registeredUsers')
-        if (storedUsers) {
-          this.registeredUsers = JSON.parse(storedUsers)
-        }
-      } catch (error) {
-        console.error('Error loading users from storage:', error)
-        this.registeredUsers = []
-      }
-    },
-
-    saveUsersToStorage() {
-      try {
-        localStorage.setItem('registeredUsers', JSON.stringify(this.registeredUsers))
-      } catch (error) {
-        console.error('Error saving users to storage:', error)
-      }
+    // Firestore methods
+    loadUsersFromFirestore() {
+      const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'))
+      this.unsubscribe = onSnapshot(q, (snapshot) => {
+        this.registeredUsers = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+      }, (error) => {
+        console.error('Error loading users from Firestore:', error)
+        this.formErrors.push('Failed to load users list')
+      })
     },
 
     // User management
-    removeUser(index) {
-      this.registeredUsers.splice(index, 1)
-      this.saveUsersToStorage()
+    async removeUser(userUid) {
+      try {
+        await deleteDoc(doc(db, 'users', userUid))
+      } catch (error) {
+        console.error('Error removing user:', error)
+        this.formErrors.push('Failed to remove user')
+      }
     },
 
-    clearAllUsers() {
+    async clearAllUsers() {
       if (confirm('Are you sure you want to clear all users?')) {
-        this.registeredUsers = []
-        this.saveUsersToStorage()
+        try {
+          const deletePromises = this.registeredUsers.map(user =>
+            deleteDoc(doc(db, 'users', user.uid))  // 使用 uid 而不是 id
+          )
+          await Promise.all(deletePromises)
+        } catch (error) {
+          console.error('Error clearing all users:', error)
+          this.formErrors.push('Failed to clear all users')
+        }
       }
     },
 
     // Form submission
-    submitForm() {
+    async submitForm() {
       this.formErrors = []
       this.isSubmitting = true
 
@@ -234,32 +247,53 @@ export default {
         return
       }
 
-      // Simulate API call
-      setTimeout(() => {
-        const newUser = {
-          username: this.form.username,
+      try {
+        // Create user with Firebase Authentication
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          this.form.email,
+          this.form.password
+        )
+
+        // Store additional user info in Firestore
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          uid: userCredential.user.uid,
           email: this.form.email,
+          username: this.form.username,
           age: this.form.age,
-          password: this.form.password,
           createdAt: new Date().toISOString()
-        }
-        
-        this.registeredUsers.unshift(newUser)
-        this.saveUsersToStorage()
-        
+        })
+
         this.success = true
         this.isSubmitting = false
-        
+
         // Reset form and validation states
         this.resetForm()
-        
-        console.log('Form submitted:', newUser)
-        
+
+        console.log('User created successfully:', userCredential.user.uid)
+
         // Hide success message after 3 seconds
         setTimeout(() => {
           this.success = false
         }, 3000)
-      }, 1000)
+
+      } catch (error) {
+        console.error('Error creating user:', error)
+        this.isSubmitting = false
+
+        // Handle specific Firebase errors
+        if (error.code === 'auth/email-already-in-use') {
+          this.formErrors.push('Email is already registered')
+        } else if (error.code === 'auth/weak-password') {
+          this.formErrors.push('Password is too weak')
+        } else if (error.code === 'auth/invalid-email') {
+          this.formErrors.push('Invalid email address')
+        } else if (error.code === 'auth/network-request-failed') {
+          this.formErrors.push('Network error. Please check your connection.')
+        } else {
+          this.formErrors.push('Failed to create account. Please try again.')
+        }
+      }
     },
 
     resetForm() {
@@ -269,7 +303,7 @@ export default {
         age: null,
         username: '',
       }
-      
+
       this.formFields.forEach(field => {
         this.fieldErrors[field.name] = ''
         this.fieldValids[field.name] = false
@@ -281,11 +315,12 @@ export default {
 
 <style scoped>
 .register-form {
-  background: white;
+  background: var(--forest-light);
   border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px var(--shadow-light);
   padding: 2rem;
   margin: 2rem 0;
+  border: 1px solid var(--border-light);
 }
 
 .form-group {
@@ -296,25 +331,27 @@ label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #555;
+  color: var(--text-primary);
 }
 
 .form-control {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #ddd;
+  border: 2px solid var(--border-medium);
   border-radius: 5px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  background: var(--forest-light);
+  color: var(--text-primary);
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--forest-deep);
 }
 
 .form-control.valid {
-  border-color: #28a745;
+  border-color: var(--forest-deep);
 }
 
 .form-control.error {
@@ -331,23 +368,28 @@ label {
 .btn-submit {
   width: 100%;
   padding: 0.75rem;
-  background: #007bff;
-  color: white;
+  background: var(--forest-dark);
+  color: var(--text-light);
   border: none;
   border-radius: 5px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px var(--shadow-medium);
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #0056b3;
+  background: var(--forest-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-dark);
 }
 
 .btn-submit:disabled {
-  background: #ccc;
+  background: var(--forest-muted);
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Alert styles */
@@ -501,14 +543,15 @@ label {
     align-items: stretch;
     gap: 1rem;
   }
-  
+
   .user-info {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .remove-btn {
     align-self: center;
   }
 }
+
 </style>

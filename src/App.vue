@@ -5,9 +5,9 @@ import { computed } from 'vue'
 
 const route = useRoute()
 
-// 在注册页面时不显示导航栏
+// 在注册页面和登录页面时不显示导航栏
 const showNavigationBar = computed(() => {
-  return route.name !== 'Register'
+  return route.name !== 'Register' && route.name !== 'Login'
 })
 </script>
 
