@@ -9,6 +9,11 @@ export function escapeHtml(text) {
   return text.replace(/[&<>"'/]/g, s => map[s])
 }
 
+// Alias for escapeHtml for backward compatibility
+export function safeText(text) {
+  return escapeHtml(text)
+}
+
 export function sanitizeInput(input) {
   if (typeof input !== 'string') return ''
 
