@@ -8,10 +8,10 @@
       <!-- 搜索栏 -->
       <div class="search-section">
         <div class="search-input-wrapper">
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="Search strategies, keywords..." 
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search strategies, keywords..."
             class="search-input"
           />
           <div class="search-icon">🔍</div>
@@ -22,14 +22,14 @@
       <div class="filters-section">
         <div class="filter-group">
           <label for="categoryFilter" class="filter-label">Sort by Category:</label>
-          <select 
+          <select
             id="categoryFilter"
-            v-model="selectedMainCategory" 
+            v-model="selectedMainCategory"
             class="category-select"
           >
             <option value="all">All Strategies</option>
-            <option 
-              v-for="category in mainCategories" 
+            <option
+              v-for="category in mainCategories"
               :key="category.id"
               :value="category.id"
             >
@@ -37,12 +37,12 @@
             </option>
           </select>
         </div>
-        
+
         <div class="filter-group">
           <label for="ratingFilter" class="filter-label">Sort by Rating:</label>
-          <select 
+          <select
             id="ratingFilter"
-            v-model="ratingSortOrder" 
+            v-model="ratingSortOrder"
             class="rating-select"
           >
             <option value="none">No Sorting</option>
@@ -60,8 +60,8 @@
         </h3>
 
         <div class="strategies-grid" v-if="filteredStrategies.length > 0">
-          <div 
-            v-for="strategy in filteredStrategies" 
+          <div
+            v-for="strategy in filteredStrategies"
             :key="strategy.id"
             class="strategy-card"
             @click="selectStrategy(strategy)"
@@ -70,8 +70,8 @@
             <div class="card-header">
               <h2 class="card-title">{{ strategy.title }}</h2>
               <div class="card-tags">
-                <span 
-                  v-for="tag in strategy.tags" 
+                <span
+                  v-for="tag in strategy.tags"
                   :key="tag"
                   class="strategy-tag"
                 >
@@ -79,12 +79,12 @@
                 </span>
               </div>
             </div>
-            
+
             <!-- 描述和评分区域 - 底部 -->
             <div class="card-footer">
               <p class="card-description">{{ strategy.description }}</p>
               <div class="card-rating" v-if="getTotalRatings(strategy.id) > 0">
-                {{ getAverageRating(strategy.id).toFixed(1) }}⭐ 
+                {{ getAverageRating(strategy.id).toFixed(1) }}⭐
                 ({{ getTotalRatings(strategy.id) }} ratings)
               </div>
               <div class="card-rating" v-else>
@@ -101,46 +101,51 @@
               <h2 class="floating-card-title">{{ selectedStrategy.title }}</h2>
               <button class="close-button" @click="closeModal">×</button>
             </div>
-            
+
             <div class="floating-card-content">
               <div class="floating-card-tags">
-                <span 
-                  v-for="tag in selectedStrategy.tags" 
+                <span
+                  v-for="tag in selectedStrategy.tags"
                   :key="tag"
                   class="strategy-tag"
                 >
                   {{ tag }}
                 </span>
               </div>
-              
+
               <p class="floating-strategy-description">{{ selectedStrategy.description }}</p>
-              
+
               <ul class="floating-strategy-list">
                 <li v-for="tip in selectedStrategy.tips" :key="tip.title">
                   <strong>{{ tip.title }}：</strong>
                   {{ tip.description }}
                 </li>
               </ul>
-              
+
               <!-- 评分系统 -->
               <div class="floating-rating-section">
-                <!-- 聚合评分显示 -->
+                <!-- 聚合评分显示 - 所有用户都可以看到 -->
                 <div class="floating-average-rating" v-if="getTotalRatings(selectedStrategy.id) > 0">
                   <div class="floating-average-text">
-                    Average: {{ getAverageRating(selectedStrategy.id).toFixed(1) }}⭐ 
+                    Average: {{ getAverageRating(selectedStrategy.id).toFixed(1) }}⭐
                     ({{ getTotalRatings(selectedStrategy.id) }} ratings)
                   </div>
                 </div>
-                
-                <!-- 用户评分 -->
-                <div class="floating-user-rating" v-if="isAuthenticated">
+                <div class="floating-average-rating" v-else>
+                  <div class="floating-average-text">
+                    No ratings yet
+                  </div>
+                </div>
+
+                <!-- 普通用户评分 -->
+                <div class="floating-user-rating" v-if="isAuthenticated && !isAdminUser">
                   <div class="floating-rating-label">Your rating:</div>
                   <div class="floating-star-rating">
-                    <span 
-                      v-for="star in renderStars(selectedStrategy.id)" 
+                    <span
+                      v-for="star in renderStars(selectedStrategy.id)"
                       :key="star.value"
                       @click="setStrategyRating(selectedStrategy.id, star.value)"
-                      :class="['floating-star', { 
+                      :class="['floating-star', {
                         'filled': star.filled
                       }]"
                       :title="`Rate ${star.value} star${star.value > 1 ? 's' : ''}`"
@@ -150,11 +155,37 @@
                   </div>
                   <div class="floating-rating-text" v-if="getStrategyRating(selectedStrategy.id) > 0">
                     {{ getStrategyRating(selectedStrategy.id) === 5 ? 'Highly Recommended!' : `${getStrategyRating(selectedStrategy.id)} star${getStrategyRating(selectedStrategy.id) > 1 ? 's' : ''}` }}
+                    <div class="rating-hint">Click a star to change your rating</div>
                   </div>
                 </div>
-                
+
+                <!-- 管理员评分查看 -->
+                <div class="floating-admin-rating" v-if="isAuthenticated && isAdminUser">
+                  <div class="floating-rating-label">Rating Overview (Admin View):</div>
+                  <div class="floating-star-display">
+                    <span
+                      v-for="star in renderStars(selectedStrategy.id)"
+                      :key="star.value"
+                      :class="['floating-star', 'readonly', {
+                        'filled': star.filled
+                      }]"
+                      :title="`${star.value} star${star.value > 1 ? 's' : ''}`"
+                    >
+                      ★
+                    </span>
+                  </div>
+                  <div class="floating-rating-text" v-if="getStrategyRating(selectedStrategy.id) > 0">
+                    {{ getStrategyRating(selectedStrategy.id) === 5 ? 'Highly Recommended!' : `${getStrategyRating(selectedStrategy.id)} star${getStrategyRating(selectedStrategy.id) > 1 ? 's' : ''}` }}
+                    <div class="admin-note">As an administrator, you can view ratings but cannot rate strategies.</div>
+                  </div>
+                  <div class="floating-rating-text" v-else>
+                    No rating given
+                    <div class="admin-note">As an administrator, you can view ratings but cannot rate strategies.</div>
+                  </div>
+                </div>
+
                 <!-- 未登录提示 -->
-                <div class="floating-login-prompt" v-else>
+                <div class="floating-login-prompt" v-if="!isAuthenticated">
                   <div class="floating-rating-label">Please login to rate strategies</div>
                 </div>
               </div>
@@ -168,15 +199,16 @@
 
 <script>
 import { mainCategories, strategies } from '@/data/emotionStrategies.js'
-import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 import { useAuth } from '@/composables/useAuth.js'
+import { isAdmin } from '@/utils/permissions.js'
 
 export default {
   name: 'StrategyDisplaySection',
   setup() {
-    const { user, isAuthenticated } = useAuth()
-    return { user, isAuthenticated }
+    const { user, isAuthenticated, userRole } = useAuth()
+    return { user, isAuthenticated, userRole }
   },
   data() {
     return {
@@ -185,9 +217,9 @@ export default {
       ratingSortOrder: 'none',
       mainCategories,
       strategies,
-      userRatings: {}, 
-      aggregateRatings: {}, 
-      selectedStrategy: null 
+      userRatings: {},
+      aggregateRatings: {},
+      selectedStrategy: null
     }
   },
 
@@ -214,13 +246,18 @@ export default {
   },
 
   computed: {
+    // 检查用户是否为管理员
+    isAdminUser() {
+      return isAdmin(this.userRole)
+    },
+
     // 过滤后的策略
     filteredStrategies() {
       let filtered = this.strategies
 
       // 分类筛选
       if (this.selectedMainCategory !== 'all') {
-        filtered = filtered.filter(strategy => 
+        filtered = filtered.filter(strategy =>
           strategy.category === this.selectedMainCategory
         )
       }
@@ -228,11 +265,11 @@ export default {
       // 搜索筛选
       if (this.searchQuery.trim()) {
         const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(strategy => 
+        filtered = filtered.filter(strategy =>
           strategy.title.toLowerCase().includes(query) ||
           strategy.description.toLowerCase().includes(query) ||
           strategy.tags.some(tag => tag.toLowerCase().includes(query)) ||
-          strategy.tips.some(tip => 
+          strategy.tips.some(tip =>
             tip.title.toLowerCase().includes(query) ||
             tip.description.toLowerCase().includes(query)
           )
@@ -244,7 +281,7 @@ export default {
         filtered = filtered.sort((a, b) => {
           const ratingA = this.getAverageRating(a.id)
           const ratingB = this.getAverageRating(b.id)
-          
+
           if (this.ratingSortOrder === 'high-to-low') {
             return ratingB - ratingA
           } else if (this.ratingSortOrder === 'low-to-high') {
@@ -281,7 +318,7 @@ export default {
     async loadUserRatings() {
       try {
         const q = query(
-          collection(db, 'ratings'), 
+          collection(db, 'ratings'),
           where('userId', '==', this.user.uid),
           where('itemType', '==', 'strategy')
         )
@@ -332,13 +369,27 @@ export default {
       }
 
       try {
-        // 保存用户评分
-        await setDoc(doc(db, 'ratings', `${this.user.uid}_${strategyId}`), {
+        const existingRatingId = `${this.user.uid}_${strategyId}`
+        const isExistingRating = this.userRatings[strategyId] > 0
+
+        // 获取现有评分数据以保持创建时间
+        let existingData = null
+        if (isExistingRating) {
+          try {
+            const ratingDoc = await getDoc(doc(db, 'ratings', existingRatingId))
+            existingData = ratingDoc.exists() ? ratingDoc.data() : null
+          } catch (error) {
+            console.warn('Could not fetch existing rating data:', error)
+          }
+        }
+
+        // 保存或更新用户评分（使用setDoc会自动覆盖）
+        await setDoc(doc(db, 'ratings', existingRatingId), {
           userId: this.user.uid,
           itemId: strategyId,
           itemType: 'strategy',
           rating: rating,
-          createdAt: new Date(),
+          createdAt: existingData?.createdAt || new Date(),
           updatedAt: new Date()
         })
 
@@ -347,8 +398,16 @@ export default {
 
         // 重新计算聚合评分
         await this.updateAggregateRating(strategyId)
+
+        // 显示成功消息
+        if (isExistingRating) {
+          console.log(`Rating updated to ${rating} stars`)
+        } else {
+          console.log(`Rating saved: ${rating} stars`)
+        }
       } catch (error) {
         console.error('Error saving rating:', error)
+        alert('Failed to save rating. Please try again.')
       }
     },
 
@@ -361,10 +420,10 @@ export default {
         where('itemType', '==', 'strategy')
       )
       const snapshot = await getDocs(q)
-      
+
       let totalRating = 0
       let count = 0
-      
+
       snapshot.forEach(doc => {
         totalRating += doc.data().rating
         count++
@@ -834,6 +893,39 @@ export default {
   margin-bottom: 1rem;
 }
 
+.floating-admin-rating {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(0, 123, 255, 0.05);
+  border: 1px solid rgba(0, 123, 255, 0.2);
+  border-radius: 8px;
+}
+
+.floating-star-display {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.floating-star.readonly {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.floating-star.readonly:hover {
+  transform: none;
+  color: var(--border-medium);
+}
+
+.admin-note {
+  color: var(--forest-medium);
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
 .floating-login-prompt {
   margin-bottom: 1rem;
 }
@@ -876,6 +968,14 @@ export default {
   font-style: italic;
 }
 
+.rating-hint {
+  font-size: 0.8rem;
+  color: var(--forest-medium);
+  font-weight: 400;
+  font-style: normal;
+  margin-top: 0.25rem;
+}
+
 @media (max-width: 768px) {
   .search-input {
     padding: 0.8rem 2.5rem 0.8rem 1.2rem;
@@ -902,7 +1002,7 @@ export default {
     font-size: 0.9rem;
     padding-right: 2.5rem;
   }
-  
+
   .strategies-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
