@@ -9,9 +9,22 @@
             <!-- Form Fields -->
             <div v-for="field in formFields" :key="field.name" class="form-group mb-3">
               <label>{{ field.label }}</label>
+
+              <!-- Special handling for password field -->
+              <div v-if="field.name === 'password'" class="password-field-container">
+                <input
+                  v-model="form[field.name]"
+                  @input="validateField(field.name)"
+                  :type="field.type"
+                  :placeholder="field.placeholder"
+                  class="form-control"
+                  :class="{ error: getFieldError(field.name), valid: getFieldValid(field.name) }"
+                />
+              </div>
+
               <!-- Select field for role -->
               <select
-                v-if="field.type === 'select'"
+                v-else-if="field.type === 'select'"
                 v-model="form[field.name]"
                 @change="validateField(field.name)"
                 class="form-control"
@@ -22,6 +35,7 @@
                   {{ option.label }}
                 </option>
               </select>
+
               <!-- Input field for other types -->
               <input
                 v-else
@@ -32,6 +46,7 @@
                 class="form-control"
                 :class="{ error: getFieldError(field.name), valid: getFieldValid(field.name) }"
               />
+
               <span v-if="getFieldError(field.name)" class="error-msg">
                 {{ getFieldError(field.name) }}
               </span>
@@ -56,33 +71,6 @@
             </div>
           </form>
 
-          <!-- Users List -->
-          <div class="dynamic-data-section mt-5">
-            <h3 class="text-center mb-4">Registered Users</h3>
-
-            <div v-if="registeredUsers.length > 0" class="users-list">
-              <div class="user-card" v-for="user in registeredUsers" :key="user.uid">
-                <div class="user-info">
-                  <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
-                  <div class="user-details">
-                    <h4 class="username">{{ user.username }}</h4>
-                    <p class="email">{{ user.email }}</p>
-                    <p class="age">Age: {{ user.age }}</p>
-                    <p class="role">Role: {{ user.role || 'user' }}</p>
-                  </div>
-                </div>
-                <button @click="removeUser(user.uid)" class="remove-btn" title="Remove user">×</button>
-              </div>
-            </div>
-
-            <div v-else class="empty-state">
-              <p class="text-center text-muted">No users registered yet. Be the first one!</p>
-            </div>
-
-            <div v-if="registeredUsers.length > 0" class="text-center mt-4">
-              <button @click="clearAllUsers" class="btn-clear-all">Clear All Users</button>
-            </div>
-          </div>
 
         </div>
       </div>
@@ -92,8 +80,21 @@
 
 <script>
 import { createUserWithEmailAndPassword } from 'firebase/auth'
-import { collection, onSnapshot, deleteDoc, doc, query, orderBy, setDoc } from 'firebase/firestore'
+import { setDoc, doc } from 'firebase/firestore'
 import { auth, db } from '@/firebase.js'
+import {
+  sanitizeInput,
+  isValidEmail,
+  validatePassword,
+  validateConfirmPassword,
+  isValidUsername,
+  isValidAge,
+  isValidRole,
+  containsXSS,
+  logSecurityEvent,
+  handleSecurityError,
+  createSafeUserData
+} from '@/utils/security.js'
 
 export default {
   name: 'RegisterForm',
@@ -102,6 +103,7 @@ export default {
       form: {
         email: '',
         password: '',
+        confirmPassword: '',
         age: null,
         username: '',
         role: 'user', // Default role
@@ -113,9 +115,6 @@ export default {
       formErrors: [],
       isSubmitting: false,
       success: false,
-      // Firebase related states
-      registeredUsers: [],
-      unsubscribe: null,
       // Form field configuration
       formFields: [
         {
@@ -125,8 +124,21 @@ export default {
           placeholder: 'Enter your email',
           validator: (value) => {
             if (!value) return 'Email is required'
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-            if (!emailRegex.test(value)) return 'Invalid email format'
+
+            // 检查是否包含XSS攻击
+            if (containsXSS(value)) {
+              logSecurityEvent('xss_attempt', 'XSS attempt detected in email field', { email: value })
+              return 'Invalid email format'
+            }
+
+            // 清理输入
+            const cleanedValue = sanitizeInput(value)
+
+            // 验证邮箱格式
+            if (!isValidEmail(cleanedValue)) {
+              return 'Invalid email format'
+            }
+
             return ''
           }
         },
@@ -134,10 +146,39 @@ export default {
           name: 'password',
           label: 'Password *',
           type: 'password',
-          placeholder: 'Enter password (min 6 characters)',
+          placeholder: 'Enter password',
           validator: (value) => {
             if (!value) return 'Password is required'
-            if (value.length < 6) return 'Password must be at least 6 characters'
+
+            // 检查是否包含XSS攻击
+            if (containsXSS(value)) {
+              logSecurityEvent('xss_attempt', 'XSS attempt detected in password field')
+              return 'Password contains invalid characters'
+            }
+
+            // 验证密码强度（强制要求）
+            const passwordValidation = validatePassword(value)
+            if (!passwordValidation.isValid) {
+              return passwordValidation.message
+            }
+
+            return ''
+          }
+        },
+        {
+          name: 'confirmPassword',
+          label: 'Confirm Password *',
+          type: 'password',
+          placeholder: 'Confirm your password',
+          validator: (value) => {
+            if (!value) return 'Please confirm your password'
+
+            // 验证确认密码
+            const confirmValidation = validateConfirmPassword(this.form.password, value)
+            if (!confirmValidation.isValid) {
+              return confirmValidation.message
+            }
+
             return ''
           }
         },
@@ -148,7 +189,14 @@ export default {
           placeholder: 'Enter your age (13-24)',
           validator: (value) => {
             if (!value) return 'Age is required'
-            if (value < 13 || value > 24) return 'Age must be between 13-24'
+
+            const age = parseInt(value)
+            if (isNaN(age)) return 'Age must be a valid number'
+
+            if (!isValidAge(age)) {
+              return 'Age must be between 13-24'
+            }
+
             return ''
           }
         },
@@ -159,11 +207,26 @@ export default {
           placeholder: 'Choose a username',
           validator: (value) => {
             if (!value) return 'Username is required'
-            if (value.length < 3) return 'Username must be at least 3 characters'
-            if (!/^[a-zA-Z0-9_]+$/.test(value)) {
-              return 'Username can only contain letters, numbers, underscore'
+
+            // 检查是否包含XSS攻击
+            if (containsXSS(value)) {
+              logSecurityEvent('xss_attempt', 'XSS attempt detected in username field', { username: value })
+              return 'Username contains invalid characters'
             }
-            if (value === 'admin') return 'Username "admin" is reserved'
+
+            // 清理输入
+            const cleanedValue = sanitizeInput(value)
+
+            // 验证用户名格式
+            if (!isValidUsername(cleanedValue)) {
+              if (cleanedValue.length < 3) return 'Username must be at least 3 characters'
+              if (!/^[a-zA-Z0-9_]+$/.test(cleanedValue)) {
+                return 'Username can only contain letters, numbers, underscore'
+              }
+              if (cleanedValue === 'admin') return 'Username "admin" is reserved'
+              return 'Username contains invalid characters'
+            }
+
             return ''
           }
         },
@@ -178,7 +241,11 @@ export default {
           ],
           validator: (value) => {
             if (!value) return 'Role is required'
-            if (!['user', 'admin'].includes(value)) return 'Invalid role selected'
+
+            if (!isValidRole(value)) {
+              return 'Invalid role selected'
+            }
+
             return ''
           }
         }
@@ -204,16 +271,8 @@ export default {
       }
     })
 
-    // Load users from Firestore
-    this.loadUsersFromFirestore()
   },
 
-  beforeUnmount() {
-    // Clean up Firestore listener
-    if (this.unsubscribe) {
-      this.unsubscribe()
-    }
-  },
   methods: {
     // Validation helpers
     validateField(fieldName) {
@@ -235,43 +294,6 @@ export default {
       return this.fieldValids[fieldName] || false
     },
 
-    // Firestore methods
-    loadUsersFromFirestore() {
-      const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'))
-      this.unsubscribe = onSnapshot(q, (snapshot) => {
-        this.registeredUsers = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-      }, (error) => {
-        console.error('Error loading users from Firestore:', error)
-        this.formErrors.push('Failed to load users list')
-      })
-    },
-
-    // User management
-    async removeUser(userUid) {
-      try {
-        await deleteDoc(doc(db, 'users', userUid))
-      } catch (error) {
-        console.error('Error removing user:', error)
-        this.formErrors.push('Failed to remove user')
-      }
-    },
-
-    async clearAllUsers() {
-      if (confirm('Are you sure you want to clear all users?')) {
-        try {
-          const deletePromises = this.registeredUsers.map(user =>
-            deleteDoc(doc(db, 'users', user.uid))  // 使用 uid 而不是 id
-          )
-          await Promise.all(deletePromises)
-        } catch (error) {
-          console.error('Error clearing all users:', error)
-          this.formErrors.push('Failed to clear all users')
-        }
-      }
-    },
 
     // Form submission
     async submitForm() {
@@ -287,25 +309,47 @@ export default {
       }
 
       try {
+        // 清理输入数据
+        const cleanedEmail = sanitizeInput(this.form.email)
+        const cleanedPassword = sanitizeInput(this.form.password)
+        const cleanedUsername = sanitizeInput(this.form.username)
+
+        // 记录注册尝试
+        logSecurityEvent('register_attempt', 'User attempting to register', {
+          email: cleanedEmail,
+          username: cleanedUsername,
+          role: this.form.role
+        })
+
         // Create user with Firebase Authentication
         const userCredential = await createUserWithEmailAndPassword(
           auth,
-          this.form.email,
-          this.form.password
+          cleanedEmail,
+          cleanedPassword
         )
 
-        // Store additional user info in Firestore
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
+        // 创建安全的用户数据
+        const safeUserData = createSafeUserData({
           uid: userCredential.user.uid,
-          email: this.form.email,
-          username: this.form.username,
-          age: this.form.age,
-          role: this.form.role || 'user', // Default role assignment
-          createdAt: new Date().toISOString()
+          email: cleanedEmail,
+          username: cleanedUsername,
+          age: parseInt(this.form.age),
+          role: this.form.role || 'user'
         })
+
+        // Store additional user info in Firestore
+        await setDoc(doc(db, 'users', userCredential.user.uid), safeUserData)
 
         this.success = true
         this.isSubmitting = false
+
+        // 记录成功注册
+        logSecurityEvent('register_success', 'User registered successfully', {
+          uid: userCredential.user.uid,
+          email: cleanedEmail,
+          username: cleanedUsername,
+          role: this.form.role
+        })
 
         // Reset form and validation states
         this.resetForm()
@@ -321,6 +365,19 @@ export default {
         console.error('Error creating user:', error)
         this.isSubmitting = false
 
+        // 记录注册失败
+        logSecurityEvent('register_failed', 'Registration attempt failed', {
+          email: this.form.email,
+          username: this.form.username,
+          error: error.code
+        })
+
+        // 使用安全错误处理
+        const securityError = handleSecurityError(error, 'register_attempt', {
+          email: this.form.email,
+          username: this.form.username
+        })
+
         // Handle specific Firebase errors
         if (error.code === 'auth/email-already-in-use') {
           this.formErrors.push('Email is already registered')
@@ -331,7 +388,7 @@ export default {
         } else if (error.code === 'auth/network-request-failed') {
           this.formErrors.push('Network error. Please check your connection.')
         } else {
-          this.formErrors.push('Failed to create account. Please try again.')
+          this.formErrors.push(securityError.message)
         }
       }
     },
@@ -340,6 +397,7 @@ export default {
       this.form = {
         email: '',
         password: '',
+        confirmPassword: '',
         age: null,
         username: '',
         role: 'user', // Reset to default role
@@ -471,144 +529,22 @@ label {
   padding-left: 1.2rem;
 }
 
-/* Dynamic Data Section Styles */
-.dynamic-data-section {
-  border-top: 2px solid #eee;
-  padding-top: 2rem;
-}
 
-.users-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.user-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  transition: all 0.3s ease;
-}
-
-.user-card:hover {
-  background: #e9ecef;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 1;
-}
-
-.user-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: var(--forest-dark);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  flex-shrink: 0;
-}
-
-.user-details {
-  flex: 1;
-}
-
-.username {
-  margin: 0 0 0.25rem 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--forest-dark);
-}
-
-.email {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.age {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.875rem;
-  color: #888;
-}
-
-.role {
-  margin: 0;
-  font-size: 0.875rem;
-  color: #666;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.remove-btn {
-  background: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-}
-
-.remove-btn:hover {
-  background: #c82333;
-  transform: scale(1.1);
-}
-
-.empty-state {
-  padding: 2rem;
-  text-align: center;
-}
-
-.text-muted {
-  color: #6c757d;
-}
-
-.btn-clear-all {
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.btn-clear-all:hover {
-  background: #5a6268;
+/* Password Security Styles */
+.password-field-container {
+  position: relative;
 }
 
 /* Responsive adjustments */
 @media (max-width: 767px) {
-  .user-card {
+  .password-strength-container {
     flex-direction: column;
     align-items: stretch;
-    gap: 1rem;
+    gap: 0.25rem;
   }
 
-  .user-info {
-    flex-direction: column;
+  .password-strength-text {
     text-align: center;
-  }
-
-  .remove-btn {
-    align-self: center;
   }
 }
 

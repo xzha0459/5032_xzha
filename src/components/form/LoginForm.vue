@@ -21,9 +21,6 @@
               <span v-if="getFieldError('email')" class="error-msg">
                 {{ getFieldError('email') }}
               </span>
-              <small class="form-text text-muted">
-                Use the email address you registered with, not your username
-              </small>
             </div>
 
             <!-- Password Field -->
@@ -78,6 +75,12 @@
 <script>
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '@/firebase.js'
+import {
+  sanitizeInput,
+  isValidEmail,
+  containsXSS,
+  logSecurityEvent
+} from '@/utils/security.js'
 
 export default {
   name: 'LoginForm',
@@ -103,8 +106,21 @@ export default {
           placeholder: 'Enter your email',
           validator: (value) => {
             if (!value) return 'Email is required'
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-            if (!emailRegex.test(value)) return 'Invalid email format'
+
+            // 检查是否包含XSS攻击
+            if (containsXSS(value)) {
+              logSecurityEvent('xss_attempt', 'XSS attempt detected in email field', { email: value })
+              return 'Invalid email format'
+            }
+
+            // 清理输入
+            const cleanedValue = sanitizeInput(value)
+
+            // 验证邮箱格式
+            if (!isValidEmail(cleanedValue)) {
+              return 'Invalid email format'
+            }
+
             return ''
           }
         },
@@ -115,7 +131,13 @@ export default {
           placeholder: 'Enter your password',
           validator: (value) => {
             if (!value) return 'Password is required'
-            if (value.length < 6) return 'Password must be at least 6 characters'
+
+            // 检查是否包含XSS攻击
+            if (containsXSS(value)) {
+              logSecurityEvent('xss_attempt', 'XSS attempt detected in password field')
+              return 'Password contains invalid characters'
+            }
+
             return ''
           }
         }
@@ -169,15 +191,28 @@ export default {
       }
 
       try {
+        // 清理输入数据
+        const cleanedEmail = sanitizeInput(this.form.email)
+        const cleanedPassword = sanitizeInput(this.form.password)
+
+        // 记录登录尝试
+        logSecurityEvent('login_attempt', 'User attempting to login', { email: cleanedEmail })
+
         // Sign in with Firebase Authentication
         const userCredential = await signInWithEmailAndPassword(
           auth,
-          this.form.email,
-          this.form.password
+          cleanedEmail,
+          cleanedPassword
         )
 
         this.success = true
         this.isSubmitting = false
+
+        // 记录成功登录
+        logSecurityEvent('login_success', 'User logged in successfully', {
+          uid: userCredential.user.uid,
+          email: cleanedEmail
+        })
 
         console.log('User signed in successfully:', userCredential.user.uid)
 
@@ -195,13 +230,19 @@ export default {
         console.error('Error signing in:', error)
         this.isSubmitting = false
 
+        // 记录登录失败
+        logSecurityEvent('login_failed', 'Login attempt failed', {
+          email: this.form.email,
+          error: error.code
+        })
+
         // Handle specific Firebase errors
         if (error.code === 'auth/user-not-found') {
-          this.formErrors.push('No account found with this email address. Please use the email address you registered with, not your username.')
+          this.formErrors.push('No account found with this email address.')
         } else if (error.code === 'auth/wrong-password') {
           this.formErrors.push('Incorrect password')
         } else if (error.code === 'auth/invalid-email') {
-          this.formErrors.push('Invalid email address. Please enter a valid email address.')
+          this.formErrors.push('Invalid email address')
         } else if (error.code === 'auth/user-disabled') {
           this.formErrors.push('This account has been disabled')
         } else if (error.code === 'auth/too-many-requests') {
@@ -209,7 +250,7 @@ export default {
         } else if (error.code === 'auth/network-request-failed') {
           this.formErrors.push('Network error. Please check your connection.')
         } else {
-          this.formErrors.push('Failed to sign in. Please make sure you are using your email address and correct password.')
+          this.formErrors.push('Login failed. Please try again.')
         }
       }
     },
@@ -281,15 +322,6 @@ label {
   display: block;
 }
 
-.form-text {
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-  display: block;
-}
-
-.text-muted {
-  color: #6c757d;
-}
 
 .btn-submit {
   width: 100%;

@@ -28,12 +28,12 @@
 
                 <div v-for="user in users" :key="user.uid" class="table-row">
                   <div class="table-cell user-cell">
-                    <div class="user-avatar">{{ user.username?.charAt(0).toUpperCase() || 'U' }}</div>
+                    <div class="user-avatar">{{ getSafeUserInitial(user.username) }}</div>
                     <div class="user-info">
-                      <div class="username">{{ user.username || 'Unknown' }}</div>
+                      <div class="username" v-text="getSafeUsername(user.username)"></div>
                     </div>
                   </div>
-                  <div class="table-cell">{{ user.email }}</div>
+                  <div class="table-cell" v-text="getSafeEmail(user.email)"></div>
                   <div class="table-cell">
                     <span class="role-badge" :class="user.role || 'user'">
                       {{ getRoleDisplayName(user.role || 'user') }}
@@ -72,6 +72,7 @@ import { collection, onSnapshot, deleteDoc, doc, query, orderBy } from 'firebase
 import { db } from '@/firebase.js'
 import { useAuth } from '@/composables/useAuth.js'
 import { getRoleDisplayName } from '@/utils/permissions.js'
+import { sanitizeInput, logSecurityEvent, handleSecurityError } from '@/utils/security.js'
 
 // Use auth composable
 const { user: currentUser } = useAuth()
@@ -105,10 +106,30 @@ const deleteUser = async (uid) => {
 
   if (confirm('Are you sure you want to delete this user?')) {
     try {
+      // 记录删除用户操作
+      logSecurityEvent('admin_user_delete', 'Admin deleted user', {
+        adminUid: currentUser.value?.uid,
+        deletedUserId: uid
+      })
+
       await deleteDoc(doc(db, 'users', uid))
     } catch (error) {
       console.error('Error deleting user:', error)
-      alert('Failed to delete user')
+
+      // 记录删除失败
+      logSecurityEvent('admin_user_delete_failed', 'Admin failed to delete user', {
+        adminUid: currentUser.value?.uid,
+        deletedUserId: uid,
+        error: error.message
+      })
+
+      // 使用安全错误处理
+      const securityError = handleSecurityError(error, 'admin_user_delete', {
+        adminUid: currentUser.value?.uid,
+        deletedUserId: uid
+      })
+
+      alert(securityError.message)
     }
   }
 }
@@ -116,6 +137,23 @@ const deleteUser = async (uid) => {
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   return new Date(dateString).toLocaleDateString()
+}
+
+// 安全显示方法
+const getSafeUsername = (username) => {
+  if (!username) return 'Unknown'
+  return sanitizeInput(username)
+}
+
+const getSafeEmail = (email) => {
+  if (!email) return 'N/A'
+  return sanitizeInput(email)
+}
+
+const getSafeUserInitial = (username) => {
+  if (!username) return 'U'
+  const safeUsername = sanitizeInput(username)
+  return safeUsername.charAt(0).toUpperCase()
 }
 
 // Lifecycle

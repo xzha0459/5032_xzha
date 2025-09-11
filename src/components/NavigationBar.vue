@@ -6,6 +6,7 @@
 
       <!-- Navigation Links -->
       <div class="nav-links">
+        <button @click="goToHome" class="nav-link">Home</button>
         <button @click="goToEmotionManagement" class="nav-link">Wellbeing</button>
       </div>
 
@@ -22,7 +23,7 @@
           <div class="user-dropdown" ref="dropdownRef">
             <button @click="toggleDropdown" class="btn btn-user">
               <span class="user-avatar">{{ userInitial }}</span>
-              <span class="user-name">{{ userDisplayName }}</span>
+              <span class="user-name" v-text="userDisplayName"></span>
               <span class="dropdown-arrow" :class="{ 'open': isDropdownOpen }">▼</span>
             </button>
 
@@ -31,8 +32,8 @@
                 <div class="user-info-dropdown">
                   <div class="user-avatar-small">{{ userInitial }}</div>
                   <div class="user-details-dropdown">
-                    <div class="user-name-dropdown">{{ userDisplayName }}</div>
-                    <div class="user-role-dropdown">{{ userRoleDisplay }}</div>
+                    <div class="user-name-dropdown" v-text="userDisplayName"></div>
+                    <div class="user-role-dropdown" v-text="userRoleDisplay"></div>
                   </div>
                 </div>
               </div>
@@ -55,6 +56,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth.js'
 import { getRoleDisplayName } from '@/utils/permissions.js'
+import { safeText, sanitizeInput, logSecurityEvent } from '@/utils/security.js'
 
 const router = useRouter()
 
@@ -68,15 +70,17 @@ const dropdownRef = ref(null)
 // Computed properties
 const userDisplayName = computed(() => {
   if (!user.value) return ''
-  // 优先使用 Firestore 中的 username
-  return userProfile.value?.username || user.value.email?.split('@')[0] || 'User'
+  // 优先使用 Firestore 中的 username，并进行安全处理
+  const rawName = userProfile.value?.username || user.value.email?.split('@')[0] || 'User'
+  return safeText(sanitizeInput(rawName))
 })
 
 const userInitial = computed(() => {
   if (!user.value) return 'U'
-  // 优先使用 Firestore 中的 username
-  const name = userProfile.value?.username || user.value.email?.split('@')[0] || 'User'
-  return name.charAt(0).toUpperCase()
+  // 优先使用 Firestore 中的 username，并进行安全处理
+  const rawName = userProfile.value?.username || user.value.email?.split('@')[0] || 'User'
+  const safeName = sanitizeInput(rawName)
+  return safeName.charAt(0).toUpperCase()
 })
 
 const userRoleDisplay = computed(() => {
@@ -117,11 +121,26 @@ const closeDropdown = () => {
 // Logout method
 const logout = async () => {
   try {
+    // 记录安全事件
+    logSecurityEvent('user_logout', 'User logged out successfully', {
+      uid: user.value?.uid,
+      email: user.value?.email,
+      role: userRole.value
+    })
+
     await authLogout()
     closeDropdown()
     router.push('/')
   } catch (error) {
     console.error('Error signing out:', error)
+
+    // 记录安全错误
+    logSecurityEvent('logout_error', 'Error during logout', {
+      uid: user.value?.uid,
+      email: user.value?.email,
+      role: userRole.value,
+      error: error.message
+    })
   }
 }
 
