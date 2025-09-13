@@ -16,7 +16,5 @@ export default {
 </script>
 
 <style scoped>
-.home-page {
-  min-height: 100vh;
-}
+
 </style>

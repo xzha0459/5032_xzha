@@ -176,7 +176,7 @@ onMounted(() => {
 .nav-container {
   max-width: 100%;
   margin: 0 auto;
-  padding: 1rem 8rem;
+  padding: 0.6rem 8rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -407,7 +407,7 @@ onMounted(() => {
 /* Responsive */
 @media (max-width: 768px) {
   .nav-container {
-    padding: 1rem;
+    padding: 0.6rem;
   }
 
   .btn {

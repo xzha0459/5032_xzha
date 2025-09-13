@@ -23,14 +23,14 @@
   color: var(--text-light);
   margin: 0;
   padding: 0;
-  min-height: 100vh;
+  min-height: 90vh;
 }
 
 .hero-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: 80vh;
   padding: 2rem;
 }
 
