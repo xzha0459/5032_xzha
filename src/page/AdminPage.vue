@@ -7,16 +7,16 @@
             <h1 class="admin-title">Admin Panel</h1>
             <p class="admin-subtitle">Manage users and system settings</p>
 
-            <!-- User Management Section -->
+            <!-- Administrator Management Section -->
             <div class="admin-section">
-              <h2 class="section-title">User Management</h2>
+              <h2 class="section-title">Administrators</h2>
 
               <div v-if="isLoading" class="loading-state">
                 <div class="spinner"></div>
-                <p>Loading users...</p>
+                <p>Loading administrators...</p>
               </div>
 
-              <div v-else-if="users.length > 0" class="users-table">
+              <div v-else-if="adminUsers.length > 0" class="users-table">
                 <div class="table-header">
                   <div class="header-cell">User</div>
                   <div class="header-cell">Email</div>
@@ -26,7 +26,7 @@
                   <div class="header-cell">Actions</div>
                 </div>
 
-                <div v-for="user in users" :key="user.uid" class="table-row">
+                <div v-for="user in adminUsers" :key="user.uid" class="table-row">
                   <div class="table-cell user-cell">
                     <div class="user-avatar">{{ getSafeUserInitial(user.username) }}</div>
                     <div class="user-info">
@@ -35,9 +35,57 @@
                   </div>
                   <div class="table-cell" v-text="getSafeEmail(user.email)"></div>
                   <div class="table-cell">
-                    <span class="role-badge" :class="user.role || 'user'">
-                      {{ getRoleDisplayName(user.role || 'user') }}
-                    </span>
+                    {{ getRoleDisplayName(user.role || 'user') }}
+                  </div>
+                  <div class="table-cell">{{ user.age || 'N/A' }}</div>
+                  <div class="table-cell">{{ formatDate(user.createdAt) }}</div>
+                  <div class="table-cell">
+                    <button
+                      @click="deleteUser(user.uid)"
+                      class="btn-delete"
+                      :disabled="user.uid === currentUser?.uid"
+                      title="Delete administrator"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="empty-state">
+                <p>No administrators found.</p>
+              </div>
+            </div>
+
+            <!-- Regular Users Management Section -->
+            <div class="admin-section">
+              <h2 class="section-title">Regular Users</h2>
+
+              <div v-if="isLoading" class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading users...</p>
+              </div>
+
+              <div v-else-if="regularUsers.length > 0" class="users-table">
+                <div class="table-header">
+                  <div class="header-cell">User</div>
+                  <div class="header-cell">Email</div>
+                  <div class="header-cell">Role</div>
+                  <div class="header-cell">Age</div>
+                  <div class="header-cell">Joined</div>
+                  <div class="header-cell">Actions</div>
+                </div>
+
+                <div v-for="user in regularUsers" :key="user.uid" class="table-row">
+                  <div class="table-cell user-cell">
+                    <div class="user-avatar">{{ getSafeUserInitial(user.username) }}</div>
+                    <div class="user-info">
+                      <div class="username" v-text="getSafeUsername(user.username)"></div>
+                    </div>
+                  </div>
+                  <div class="table-cell" v-text="getSafeEmail(user.email)"></div>
+                  <div class="table-cell">
+                    {{ getRoleDisplayName(user.role || 'user') }}
                   </div>
                   <div class="table-cell">{{ user.age || 'N/A' }}</div>
                   <div class="table-cell">{{ formatDate(user.createdAt) }}</div>
@@ -55,7 +103,7 @@
               </div>
 
               <div v-else class="empty-state">
-                <p>No users found.</p>
+                <p>No regular users found.</p>
               </div>
             </div>
 
@@ -79,6 +127,8 @@ const { user: currentUser } = useAuth()
 
 // State
 const users = ref([])
+const adminUsers = ref([])
+const regularUsers = ref([])
 const isLoading = ref(true)
 const unsubscribe = ref(null)
 
@@ -87,10 +137,16 @@ const unsubscribe = ref(null)
 const loadUsers = () => {
   const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'))
   unsubscribe.value = onSnapshot(q, (snapshot) => {
-    users.value = snapshot.docs.map(doc => ({
+    const allUsers = snapshot.docs.map(doc => ({
       uid: doc.id,
       ...doc.data()
     }))
+
+    // Separate users by role
+    adminUsers.value = allUsers.filter(user => user.role === 'admin')
+    regularUsers.value = allUsers.filter(user => user.role !== 'admin')
+    users.value = allUsers
+
     isLoading.value = false
   }, (error) => {
     console.error('Error loading users:', error)
@@ -237,6 +293,15 @@ onUnmounted(() => {
   100% { transform: rotate(360deg); }
 }
 
+/* Admin sections */
+.admin-section {
+  margin-bottom: 2rem;
+}
+
+.admin-section:last-child {
+  margin-bottom: 0;
+}
+
 /* Table */
 .users-table {
   background: white;
@@ -247,7 +312,8 @@ onUnmounted(() => {
 
 .table-header, .table-row {
   display: grid;
-  grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1fr;
+
+  grid-template-columns: 1.5fr 2fr 1fr 0.8fr 1fr 1fr;
 }
 
 .table-header {
@@ -283,6 +349,7 @@ onUnmounted(() => {
 /* User info */
 .user-cell {
   gap: 0.75rem;
+  align-items: center;
 }
 
 .user-avatar {
@@ -301,25 +368,6 @@ onUnmounted(() => {
 .username {
   font-weight: 600;
   color: var(--forest-dark);
-}
-
-/* Role badges */
-.role-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.role-badge.user {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.role-badge.admin {
-  background: #f3e5f5;
-  color: #7b1fa2;
 }
 
 /* Buttons */

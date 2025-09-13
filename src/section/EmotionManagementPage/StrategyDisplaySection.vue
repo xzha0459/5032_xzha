@@ -1,11 +1,9 @@
 <template>
   <div class="strategy-display-section">
-      <!-- 页面标题 -->
       <div class="page-header">
         <h1 class="page-title">Emotion Management Strategies</h1>
       </div>
 
-      <!-- 搜索栏 -->
       <div class="search-section">
         <div class="search-input-wrapper">
           <input
@@ -18,7 +16,6 @@
         </div>
       </div>
 
-      <!-- 筛选器 -->
       <div class="filters-section">
         <div class="filter-group">
           <label for="categoryFilter" class="filter-label">Sort by Category:</label>
@@ -52,7 +49,6 @@
         </div>
       </div>
 
-      <!-- 策略列表 -->
       <div class="strategies-section">
         <h3 class="section-title">
           {{ getCurrentCategoryTitle() }}
@@ -66,7 +62,7 @@
             class="strategy-card"
             @click="selectStrategy(strategy)"
           >
-            <!-- 标题和标签区域 - 顶部 -->
+
             <div class="card-header">
               <h2 class="card-title">{{ strategy.title }}</h2>
               <div class="card-tags">
@@ -80,7 +76,6 @@
               </div>
             </div>
 
-            <!-- 描述和评分区域 - 底部 -->
             <div class="card-footer">
               <p class="card-description">{{ strategy.description }}</p>
               <div class="card-rating" v-if="getTotalRatings(strategy.id) > 0">
@@ -94,7 +89,6 @@
           </div>
         </div>
 
-        <!-- 悬浮大卡片 -->
         <div class="modal-overlay" v-if="hasSelectedStrategy()" @click="closeModal">
           <div class="floating-card" @click.stop>
             <div class="floating-card-header">
@@ -122,9 +116,7 @@
                 </li>
               </ul>
 
-              <!-- 评分系统 -->
               <div class="floating-rating-section">
-                <!-- 聚合评分显示 - 所有用户都可以看到 -->
                 <div class="floating-average-rating" v-if="getTotalRatings(selectedStrategy.id) > 0">
                   <div class="floating-average-text">
                     Average: {{ getAverageRating(selectedStrategy.id).toFixed(1) }}⭐
@@ -137,7 +129,6 @@
                   </div>
                 </div>
 
-                <!-- 普通用户评分 -->
                 <div class="floating-user-rating" v-if="isAuthenticated && !isAdminUser">
                   <div class="floating-rating-label">Your rating:</div>
                   <div class="floating-star-rating">
@@ -159,9 +150,8 @@
                   </div>
                 </div>
 
-                <!-- 管理员评分查看 -->
-                <div class="floating-admin-rating" v-if="isAuthenticated && isAdminUser">
-                  <div class="floating-rating-label">Rating Overview (Admin View):</div>
+                <div class="floating-readonly-rating" v-if="!isAuthenticated">
+                  <div class="floating-rating-label">Overall Rating:</div>
                   <div class="floating-star-display">
                     <span
                       v-for="star in renderStars(selectedStrategy.id)"
@@ -174,19 +164,14 @@
                       ★
                     </span>
                   </div>
-                  <div class="floating-rating-text" v-if="getStrategyRating(selectedStrategy.id) > 0">
-                    {{ getStrategyRating(selectedStrategy.id) === 5 ? 'Highly Recommended!' : `${getStrategyRating(selectedStrategy.id)} star${getStrategyRating(selectedStrategy.id) > 1 ? 's' : ''}` }}
-                    <div class="admin-note">As an administrator, you can view ratings but cannot rate strategies.</div>
+                  <div class="floating-rating-text" v-if="getTotalRatings(selectedStrategy.id) > 0">
+                    {{ getAverageRating(selectedStrategy.id).toFixed(1) }} stars ({{ getTotalRatings(selectedStrategy.id) }} ratings)
+                    <div class="login-note">Please login to rate this strategy</div>
                   </div>
                   <div class="floating-rating-text" v-else>
-                    No rating given
-                    <div class="admin-note">As an administrator, you can view ratings but cannot rate strategies.</div>
+                    No ratings yet
+                    <div class="login-note">Please login to be the first to rate this strategy</div>
                   </div>
-                </div>
-
-                <!-- 未登录提示 -->
-                <div class="floating-login-prompt" v-if="!isAuthenticated">
-                  <div class="floating-rating-label">Please login to rate strategies</div>
                 </div>
               </div>
             </div>
@@ -224,7 +209,6 @@ export default {
   },
 
   async mounted() {
-    // 延迟一点时间确保认证状态已确定
     setTimeout(async () => {
       await this.loadDataIfAuthenticated()
     }, 100)
@@ -236,9 +220,9 @@ export default {
         if (newVal) {
           await this.loadDataIfAuthenticated()
         } else {
-          // 用户登出时清空数据
+          // Clear only personal rating data when user logs out, keep aggregate rating data
           this.userRatings = {}
-          this.aggregateRatings = {}
+          // Don't clear aggregateRatings, let unauthenticated users see ratings
         }
       },
       immediate: true
@@ -246,23 +230,19 @@ export default {
   },
 
   computed: {
-    // 检查用户是否为管理员
+    // Check if user is admin
     isAdminUser() {
       return isAdmin(this.userRole)
     },
 
-    // 过滤后的策略
     filteredStrategies() {
       let filtered = this.strategies
-
-      // 分类筛选
       if (this.selectedMainCategory !== 'all') {
         filtered = filtered.filter(strategy =>
           strategy.category === this.selectedMainCategory
         )
       }
 
-      // 搜索筛选
       if (this.searchQuery.trim()) {
         const query = this.searchQuery.toLowerCase()
         filtered = filtered.filter(strategy =>
@@ -276,7 +256,6 @@ export default {
         )
       }
 
-      // 评分排序
       if (this.ratingSortOrder !== 'none') {
         filtered = filtered.sort((a, b) => {
           const ratingA = this.getAverageRating(a.id)
@@ -296,16 +275,13 @@ export default {
   },
 
   methods: {
-    // 如果用户已认证则加载数据
     async loadDataIfAuthenticated() {
+      await this.loadAggregateRatings()
       if (this.isAuthenticated && this.user?.uid) {
         await this.loadUserRatings()
-        await this.loadAggregateRatings()
       }
     },
 
-
-    // 获取当前分类标题
     getCurrentCategoryTitle() {
       if (this.selectedMainCategory === 'all') {
         return 'All Emotion Management Strategies'
@@ -314,7 +290,6 @@ export default {
       return category ? category.name : 'Emotion Management Strategies'
     },
 
-    // 加载当前用户的评分
     async loadUserRatings() {
       try {
         const q = query(
@@ -332,7 +307,6 @@ export default {
       }
     },
 
-    // 加载聚合评分数据
     async loadAggregateRatings() {
       try {
         const q = query(collection(db, 'rating_aggregates'))
@@ -346,22 +320,18 @@ export default {
       }
     },
 
-    // 获取用户评分
     getStrategyRating(strategyId) {
       return this.userRatings[strategyId] || 0
     },
 
-    // 获取平均评分
     getAverageRating(strategyId) {
       return this.aggregateRatings[strategyId]?.averageRating || 0
     },
 
-    // 获取总评分数量
     getTotalRatings(strategyId) {
       return this.aggregateRatings[strategyId]?.totalRatings || 0
     },
 
-    // 设置策略评分
     async setStrategyRating(strategyId, rating) {
       if (!this.isAuthenticated) {
         alert('Please login to rate strategies')
@@ -372,7 +342,6 @@ export default {
         const existingRatingId = `${this.user.uid}_${strategyId}`
         const isExistingRating = this.userRatings[strategyId] > 0
 
-        // 获取现有评分数据以保持创建时间
         let existingData = null
         if (isExistingRating) {
           try {
@@ -383,7 +352,6 @@ export default {
           }
         }
 
-        // 保存或更新用户评分（使用setDoc会自动覆盖）
         await setDoc(doc(db, 'ratings', existingRatingId), {
           userId: this.user.uid,
           itemId: strategyId,
@@ -393,13 +361,10 @@ export default {
           updatedAt: new Date()
         })
 
-        // 更新本地状态
         this.userRatings[strategyId] = rating
 
-        // 重新计算聚合评分
         await this.updateAggregateRating(strategyId)
 
-        // 显示成功消息
         if (isExistingRating) {
           console.log(`Rating updated to ${rating} stars`)
         } else {
@@ -411,9 +376,7 @@ export default {
       }
     },
 
-    // 更新聚合评分
     async updateAggregateRating(strategyId) {
-      // 查询该策略的所有评分
       const q = query(
         collection(db, 'ratings'),
         where('itemId', '==', strategyId),
@@ -431,7 +394,6 @@ export default {
 
       const averageRating = count > 0 ? totalRating / count : 0
 
-      // 更新聚合数据
       await setDoc(doc(db, 'rating_aggregates', strategyId), {
         itemId: strategyId,
         itemType: 'strategy',
@@ -441,7 +403,6 @@ export default {
       })
     },
 
-    // 渲染星星
     renderStars(strategyId) {
       const rating = this.getStrategyRating(strategyId)
       const stars = []
@@ -455,17 +416,14 @@ export default {
       return stars
     },
 
-    // 选择策略显示悬浮卡片
     selectStrategy(strategy) {
       this.selectedStrategy = strategy
     },
 
-    // 关闭悬浮卡片
     closeModal() {
       this.selectedStrategy = null
     },
 
-    // 检查是否有选中的策略
     hasSelectedStrategy() {
       return this.selectedStrategy !== null
     }
@@ -480,7 +438,7 @@ export default {
 
 
 
-/* 页面标题样式 */
+/* Page Title Styles */
 .page-header {
   text-align: center;
   margin-bottom: 3rem;
@@ -493,7 +451,7 @@ export default {
   margin: 0;
 }
 
-/* 搜索栏样式 */
+/* Search Bar Styles */
 .search-section {
   margin-bottom: 2rem;
   display: flex;
@@ -532,7 +490,7 @@ export default {
   pointer-events: none;
 }
 
-/* 筛选器样式 */
+/* Filter Styles */
 .filters-section {
   margin-bottom: 2rem;
   display: flex;
@@ -582,7 +540,7 @@ export default {
   box-shadow: 0 0 0 3px rgba(122, 139, 122, 0.1);
 }
 
-/* 策略区域样式 */
+/* Strategy Area Styles */
 .strategies-section {
   margin-bottom: 3rem;
 }
@@ -627,7 +585,7 @@ export default {
 }
 
 
-/* 卡片头部区域 */
+/* Card Header Area */
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -661,7 +619,7 @@ export default {
   font-weight: 500;
 }
 
-/* 卡片底部区域 */
+/* Card Footer Area */
 .card-footer {
   margin-top: auto;
   display: flex;
@@ -688,7 +646,7 @@ export default {
 }
 
 
-/* 评分系统样式 */
+/* Rating System Styles */
 .rating-section {
   margin: 1rem;
   padding: 1rem;
@@ -757,7 +715,7 @@ export default {
   font-style: italic;
 }
 
-/* 悬浮卡片样式 */
+/* Floating Card Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -867,7 +825,7 @@ export default {
   font-weight: 600;
 }
 
-/* 悬浮卡片评分系统 */
+/* Floating Card Rating System */
 .floating-rating-section {
   margin-top: 2rem;
   text-align: center;
@@ -926,8 +884,20 @@ export default {
   text-align: center;
 }
 
-.floating-login-prompt {
+.floating-readonly-rating {
   margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(0, 123, 255, 0.05);
+  border: 1px solid rgba(0, 123, 255, 0.2);
+  border-radius: 8px;
+}
+
+.login-note {
+  color: var(--forest-medium);
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-top: 0.5rem;
+  text-align: center;
 }
 
 .floating-rating-label {
@@ -1052,7 +1022,7 @@ export default {
     font-size: 1.5rem;
   }
 
-  /* 悬浮卡片移动端样式 */
+  /* Floating Card Mobile Styles */
   .floating-card {
     width: 95%;
     max-height: 90vh;
