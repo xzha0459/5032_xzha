@@ -69,6 +69,7 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth'
 import { setDoc, doc } from 'firebase/firestore'
 import { auth, db } from '@/firebase.js'
+import { useRouter } from 'vue-router'
 import {
   sanitizeInput,
   isValidEmail,
@@ -84,6 +85,10 @@ import {
 
 export default {
   name: 'RegisterForm',
+  setup() {
+    const router = useRouter()
+    return { router }
+  },
   data() {
     return {
       form: {
@@ -322,10 +327,11 @@ export default {
 
         console.log('User created successfully:', userCredential.user.uid)
 
-        // Hide success message after 3 seconds
+        // Redirect to login page after 2 seconds
         setTimeout(() => {
           this.success = false
-        }, 3000)
+          this.router.push('/login')
+        }, 2000)
 
       } catch (error) {
         console.error('Error creating user:', error)
