@@ -22,19 +22,6 @@
                 />
               </div>
 
-              <!-- Select field for role -->
-              <select
-                v-else-if="field.type === 'select'"
-                v-model="form[field.name]"
-                @change="validateField(field.name)"
-                class="form-control"
-                :class="{ error: getFieldError(field.name), valid: getFieldValid(field.name) }"
-              >
-                <option value="" disabled>{{ field.placeholder }}</option>
-                <option v-for="option in field.options" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
 
               <!-- Input field for other types -->
               <input
@@ -89,7 +76,6 @@ import {
   validateConfirmPassword,
   isValidUsername,
   isValidAge,
-  isValidRole,
   containsXSS,
   logSecurityEvent,
   handleSecurityError,
@@ -106,7 +92,6 @@ export default {
         confirmPassword: '',
         age: null,
         username: '',
-        role: 'user', // Default role
       },
       // Validation states
       fieldErrors: {},
@@ -125,16 +110,16 @@ export default {
           validator: (value) => {
             if (!value) return 'Email is required'
 
-            // 检查是否包含XSS攻击
+            // Check for XSS attacks
             if (containsXSS(value)) {
               logSecurityEvent('xss_attempt', 'XSS attempt detected in email field', { email: value })
               return 'Invalid email format'
             }
 
-            // 清理输入
+            // Sanitize input
             const cleanedValue = sanitizeInput(value)
 
-            // 验证邮箱格式
+            // Validate email format
             if (!isValidEmail(cleanedValue)) {
               return 'Invalid email format'
             }
@@ -150,13 +135,13 @@ export default {
           validator: (value) => {
             if (!value) return 'Password is required'
 
-            // 检查是否包含XSS攻击
+            // Check for XSS attacks
             if (containsXSS(value)) {
               logSecurityEvent('xss_attempt', 'XSS attempt detected in password field')
               return 'Password contains invalid characters'
             }
 
-            // 验证密码强度（强制要求）
+            // Validate password strength (required)
             const passwordValidation = validatePassword(value)
             if (!passwordValidation.isValid) {
               return passwordValidation.message
@@ -173,7 +158,7 @@ export default {
           validator: (value) => {
             if (!value) return 'Please confirm your password'
 
-            // 验证确认密码
+            // Validate confirm password
             const confirmValidation = validateConfirmPassword(this.form.password, value)
             if (!confirmValidation.isValid) {
               return confirmValidation.message
@@ -208,16 +193,16 @@ export default {
           validator: (value) => {
             if (!value) return 'Username is required'
 
-            // 检查是否包含XSS攻击
+            // Check for XSS attacks
             if (containsXSS(value)) {
               logSecurityEvent('xss_attempt', 'XSS attempt detected in username field', { username: value })
               return 'Username contains invalid characters'
             }
 
-            // 清理输入
+            // Sanitize input
             const cleanedValue = sanitizeInput(value)
 
-            // 验证用户名格式
+            // Validate username format
             if (!isValidUsername(cleanedValue)) {
               if (cleanedValue.length < 3) return 'Username must be at least 3 characters'
               if (!/^[a-zA-Z0-9_]+$/.test(cleanedValue)) {
@@ -230,25 +215,6 @@ export default {
             return ''
           }
         },
-        {
-          name: 'role',
-          label: 'Role *',
-          type: 'select',
-          placeholder: 'Select your role',
-          options: [
-            { value: 'user', label: 'User' },
-            { value: 'admin', label: 'Administrator' }
-          ],
-          validator: (value) => {
-            if (!value) return 'Role is required'
-
-            if (!isValidRole(value)) {
-              return 'Invalid role selected'
-            }
-
-            return ''
-          }
-        }
       ]
     }
   },
@@ -309,16 +275,16 @@ export default {
       }
 
       try {
-        // 清理输入数据
+        // Sanitize input data
         const cleanedEmail = sanitizeInput(this.form.email)
         const cleanedPassword = sanitizeInput(this.form.password)
         const cleanedUsername = sanitizeInput(this.form.username)
 
-        // 记录注册尝试
+        // Log registration attempt
         logSecurityEvent('register_attempt', 'User attempting to register', {
           email: cleanedEmail,
           username: cleanedUsername,
-          role: this.form.role
+          role: 'user'
         })
 
         // Create user with Firebase Authentication
@@ -328,13 +294,13 @@ export default {
           cleanedPassword
         )
 
-        // 创建安全的用户数据
+        // Create safe user data
         const safeUserData = createSafeUserData({
           uid: userCredential.user.uid,
           email: cleanedEmail,
           username: cleanedUsername,
           age: parseInt(this.form.age),
-          role: this.form.role || 'user'
+          role: 'user' // All registered users default to regular user
         })
 
         // Store additional user info in Firestore
@@ -343,12 +309,12 @@ export default {
         this.success = true
         this.isSubmitting = false
 
-        // 记录成功注册
+        // Log successful registration
         logSecurityEvent('register_success', 'User registered successfully', {
           uid: userCredential.user.uid,
           email: cleanedEmail,
           username: cleanedUsername,
-          role: this.form.role
+          role: 'user'
         })
 
         // Reset form and validation states
@@ -365,14 +331,14 @@ export default {
         console.error('Error creating user:', error)
         this.isSubmitting = false
 
-        // 记录注册失败
+        // Log registration failure
         logSecurityEvent('register_failed', 'Registration attempt failed', {
           email: this.form.email,
           username: this.form.username,
           error: error.code
         })
 
-        // 使用安全错误处理
+        // Use security error handling
         const securityError = handleSecurityError(error, 'register_attempt', {
           email: this.form.email,
           username: this.form.username
@@ -400,7 +366,6 @@ export default {
         confirmPassword: '',
         age: null,
         username: '',
-        role: 'user', // Reset to default role
       }
 
       this.formFields.forEach(field => {
@@ -447,15 +412,6 @@ label {
 .form-control:focus {
   outline: none;
   border-color: var(--forest-deep);
-}
-
-.form-control select {
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.7rem center;
-  background-size: 1em;
-  padding-right: 2.5rem;
 }
 
 .form-control.valid {

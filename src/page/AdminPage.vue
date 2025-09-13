@@ -7,6 +7,15 @@
             <h1 class="admin-title">Admin Panel</h1>
             <p class="admin-subtitle">Manage users and system settings</p>
 
+            <!-- Loading state for auth -->
+            <div v-if="authLoading" class="loading-state">
+              <div class="spinner"></div>
+              <p>Loading...</p>
+            </div>
+
+            <!-- Admin content -->
+            <div v-else-if="isAdminUser">
+
             <!-- Administrator Management Section -->
             <div class="admin-section">
               <h2 class="section-title">Administrators</h2>
@@ -107,6 +116,7 @@
               </div>
             </div>
 
+            </div> <!-- End admin content -->
           </div>
         </div>
       </div>
@@ -115,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { collection, onSnapshot, deleteDoc, doc, query, orderBy } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 import { useAuth } from '@/composables/useAuth.js'
@@ -123,7 +133,11 @@ import { getRoleDisplayName } from '@/utils/permissions.js'
 import { sanitizeInput, logSecurityEvent, handleSecurityError } from '@/utils/security.js'
 
 // Use auth composable
-const { user: currentUser } = useAuth()
+const { user: currentUser, isAdminUser, isLoading: authLoading } = useAuth()
+
+// Router for redirects
+import { useRouter } from 'vue-router'
+const router = useRouter()
 
 // State
 const users = ref([])
@@ -211,6 +225,14 @@ const getSafeUserInitial = (username) => {
   const safeUsername = sanitizeInput(username)
   return safeUsername.charAt(0).toUpperCase()
 }
+
+// Watch for auth changes and redirect if not admin
+watch([authLoading, isAdminUser], ([loading, isAdmin]) => {
+  if (!loading && !isAdmin) {
+    // User is not admin, redirect to home
+    router.push('/')
+  }
+}, { immediate: true })
 
 // Lifecycle
 onMounted(() => {

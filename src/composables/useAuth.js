@@ -61,6 +61,9 @@ const logout = async () => {
 
 // Initialize auth state listener
 const initializeAuth = () => {
+  // Set loading to true initially
+  isLoading.value = true
+
   const unsubscribe = onAuthStateChanged(auth, async (userData) => {
     user.value = userData
     if (userData) {
