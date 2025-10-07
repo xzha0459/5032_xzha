@@ -12,7 +12,12 @@
             placeholder="Search strategies, keywords..."
             class="search-input"
           />
-          <div class="search-icon">🔍</div>
+          <div class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+              <line x1="16" y1="16" x2="21" y2="21" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -183,7 +188,7 @@
 </template>
 
 <script>
-import { mainCategories, strategies } from '@/data/emotionStrategies.js'
+import { mainCategories } from '@/data/emotionStrategies.js'
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 import { useAuth } from '@/composables/useAuth.js'
@@ -201,18 +206,13 @@ export default {
       selectedMainCategory: 'all',
       ratingSortOrder: 'none',
       mainCategories,
-      strategies,
+      strategies: [],
       userRatings: {},
       aggregateRatings: {},
       selectedStrategy: null
     }
   },
 
-  async mounted() {
-    setTimeout(async () => {
-      await this.loadDataIfAuthenticated()
-    }, 100)
-  },
 
   watch: {
     isAuthenticated: {
@@ -275,8 +275,31 @@ export default {
   },
 
   methods: {
+    async loadStrategies() {
+      try {
+        const snapshot = await getDocs(collection(db, 'strategies'))
+        const nameToId = Object.fromEntries(mainCategories.map(c => [c.name, c.id]))
+        const docs = snapshot.docs.map(d => {
+          const data = d.data()
+          const categoryNameOrId = data.category
+          const categoryId = nameToId[categoryNameOrId] || categoryNameOrId
+          return {
+            id: data.id || d.id,
+            title: data.title,
+            description: data.description || '',
+            tags: data.tags || [],
+            tips: data.tips || [],
+            category: categoryId
+          }
+        })
+        this.strategies = docs
+      } catch (e) {
+        console.error('Error loading strategies from Firestore:', e)
+      }
+    },
     async loadDataIfAuthenticated() {
       await this.loadAggregateRatings()
+      await this.loadStrategies()
       if (this.isAuthenticated && this.user?.uid) {
         await this.loadUserRatings()
       }
@@ -436,8 +459,6 @@ export default {
   width: 100%;
 }
 
-
-
 /* Page Title Styles */
 .page-header {
   text-align: center;
@@ -485,10 +506,11 @@ export default {
   right: 1.5rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.2rem;
   color: var(--forest-medium);
   pointer-events: none;
 }
+
+.search-icon svg { width: 1.2rem; height: 1.2rem; display: block; }
 
 /* Filter Styles */
 .filters-section {
@@ -646,74 +668,7 @@ export default {
 }
 
 
-/* Rating System Styles */
-.rating-section {
-  margin: 1rem;
-  padding: 1rem;
-  background: var(--color-background-soft);
-  border-radius: 8px;
-  text-align: center;
-}
 
-.average-rating {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  background: rgba(122, 139, 122, 0.1);
-  border-radius: 8px;
-}
-
-.average-text {
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.rating-label {
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.star-rating {
-  display: flex;
-  justify-content: center;
-  gap: 0.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.star {
-  font-size: 1.5rem;
-  color: var(--border-medium);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.star:hover {
-  color: #ffd700;
-  transform: scale(1.1);
-}
-
-.star.filled {
-  color: #ffd700;
-}
-
-.star.recommended {
-  color: #ff6b6b;
-}
-
-.star.recommended.filled {
-  color: #ff6b6b;
-  text-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
-}
-
-.rating-text {
-  color: var(--text-primary);
-  font-size: 0.8rem;
-  font-weight: 600;
-  font-style: italic;
-}
 
 /* Floating Card Styles */
 .modal-overlay {
@@ -798,7 +753,8 @@ export default {
 
 .floating-strategy-description {
   color: #333;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  font-weight: 600;
   line-height: 1.4;
   margin-bottom: 1.5rem;
   font-style: italic;
@@ -851,13 +807,6 @@ export default {
   margin-bottom: 1rem;
 }
 
-.floating-admin-rating {
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: rgba(0, 123, 255, 0.05);
-  border: 1px solid rgba(0, 123, 255, 0.2);
-  border-radius: 8px;
-}
 
 .floating-star-display {
   display: flex;
@@ -874,14 +823,6 @@ export default {
 .floating-star.readonly:hover {
   transform: none;
   color: var(--border-medium);
-}
-
-.admin-note {
-  color: var(--forest-medium);
-  font-size: 0.9rem;
-  font-style: italic;
-  margin-top: 0.5rem;
-  text-align: center;
 }
 
 .floating-readonly-rating {
@@ -957,11 +898,6 @@ export default {
     font-size: 1rem;
   }
 
-  .filter-container {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
   .filter-label {
     font-size: 0.9rem;
   }
@@ -1030,10 +966,6 @@ export default {
 
   .floating-card-header {
     padding: 1.5rem;
-  }
-
-  .floating-card-icon {
-    font-size: 2.5rem;
   }
 
   .floating-card-title {
