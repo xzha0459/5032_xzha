@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
+import { getFunctions } from 'firebase/functions'
 
 const firebaseConfig = {
   apiKey: "AIzaSyAKjqMrHh0xth7EKEDOwzBK0-WCyU2PxmQ",
@@ -17,4 +18,8 @@ const app = initializeApp(firebaseConfig)
 // Initialize Firebase services
 export const auth = getAuth(app)
 export const db = getFirestore(app)
+export const functions = getFunctions(app, 'australia-southeast2')
+
+// Email function URL
+export const EMAIL_FUNCTION_URL = 'https://sendemail-ha3ghdr32q-km.a.run.app'
 
