@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.uid == uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    match /ratings/{ratingId} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /rating_aggregates/{itemId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /strategies/{id} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
