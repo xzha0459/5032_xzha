@@ -1,10 +1,11 @@
+/* eslint-env node */
 module.exports = {
   env: {
     es6: true,
-    node: true,
+    node: true,  // 添加 node 环境
   },
   parserOptions: {
-    "ecmaVersion": 2018,
+    ecmaVersion: 2018,
   },
   extends: [
     "eslint:recommended",
@@ -14,6 +15,7 @@ module.exports = {
     "no-restricted-globals": ["error", "name", "length"],
     "prefer-arrow-callback": "error",
     "quotes": ["error", "double", {"allowTemplateLiterals": true}],
+    "max-len": ["error", {"code": 120}],
   },
   overrides: [
     {
@@ -24,5 +26,11 @@ module.exports = {
       rules: {},
     },
   ],
-  globals: {},
+  globals: {
+    "module": "readonly",
+    "require": "readonly",
+    "exports": "readonly",
+    "process": "readonly",
+    "setGlobalOptions": "readonly",
+  },
 };
