@@ -97,48 +97,47 @@ onMounted(() => {
 <style scoped>
 /* Layout */
 .admin-page {
-  min-height: 100vh;
   background: var(--forest-light);
-  padding: 2rem 0;
+  padding: 3rem;
 }
 
 .admin-panel {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 4px 12px var(--shadow-medium);
   padding: 2rem;
-  margin: 2rem 0;
+  margin: 1.5rem 0;
 }
 
 /* Typography */
 .admin-title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: var(--forest-dark);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   text-align: center;
 }
 
 .admin-subtitle {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--forest-medium);
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .section-title {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--forest-dark);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   border-bottom: 2px solid var(--forest-sage);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
 }
 
 
 /* Admin sections */
 .admin-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .admin-section:last-child {
@@ -149,7 +148,7 @@ onMounted(() => {
 .admin-actions {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 /* Responsive */

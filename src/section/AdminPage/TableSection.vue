@@ -335,10 +335,10 @@ const deleteStrategy = async (row) => {
 }
 
 .section-title {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   border-bottom: 2px solid var(--border-light);
 }
 
@@ -386,8 +386,8 @@ const deleteStrategy = async (row) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
   border-top: 1px solid #e5e5e5;
   background: #f8f9fa;
 }
@@ -401,12 +401,12 @@ const deleteStrategy = async (row) => {
 /* Form Elements */
 .input {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.4rem;
   border: 1px solid #ced4da;
   border-radius: 3px;
   background: white;
   color: #495057;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .input:focus {
@@ -416,7 +416,7 @@ const deleteStrategy = async (row) => {
 }
 
 .header-cell, .table-cell {
-  padding: 0.75rem;
+  padding: 0.5rem;
   border-right: 1px solid var(--border-light);
   display: flex;
   align-items: center;
@@ -445,9 +445,9 @@ const deleteStrategy = async (row) => {
   color: white;
   border: none;
   border-radius: 3px;
-  padding: 0.4rem 0.6rem;
+  padding: 0.3rem 0.5rem;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .btn-action:hover, .btn-page:hover:not(:disabled) {
@@ -477,7 +477,7 @@ const deleteStrategy = async (row) => {
 
 .page-info {
   color: #6c757d;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 /* Modal */
@@ -493,24 +493,24 @@ const deleteStrategy = async (row) => {
 
 .modal {
   background: white;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 4px;
-  width: min(500px, 90vw);
+  width: min(450px, 90vw);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border: 1px solid #e5e5e5;
 }
 
 .modal h3 {
   color: #495057;
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  margin: 0.75rem 0 1rem;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.75rem;
 }
 
 .modal-actions {

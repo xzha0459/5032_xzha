@@ -214,15 +214,22 @@ export default {
   },
 
 
+  mounted() {
+    // Load strategies and aggregate ratings immediately, regardless of authentication status
+    this.loadStrategies()
+    this.loadAggregateRatings()
+  },
+
   watch: {
     isAuthenticated: {
       handler: async function(newVal) {
         if (newVal) {
+          // User logged in - load all data including user-specific ratings
           await this.loadDataIfAuthenticated()
         } else {
-          // Clear only personal rating data when user logs out, keep aggregate rating data
+          // User logged out - clear personal rating data, keep strategies and aggregate ratings
           this.userRatings = {}
-          // Don't clear aggregateRatings, let unauthenticated users see ratings
+          // Don't clear strategies or aggregateRatings, let unauthenticated users see them
         }
       },
       immediate: true
@@ -482,15 +489,15 @@ export default {
 .search-input-wrapper {
   position: relative;
   width: 100%;
-  max-width: 500px;
+  max-width: 400px;
 }
 
 .search-input {
   width: 100%;
-  padding: 1rem 3rem 1rem 1.5rem;
+  padding: 0.75rem 2.5rem 0.75rem 1.2rem;
   border: 2px solid var(--border-light);
-  border-radius: 50px;
-  font-size: 1rem;
+  border-radius: 25px;
+  font-size: 0.9rem;
   background: #f8f9fa;
   transition: all 0.3s ease;
 }
@@ -537,16 +544,16 @@ export default {
 
 .category-select,
 .rating-select {
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1.2rem;
   border: 2px solid var(--border-light);
-  border-radius: 25px;
+  border-radius: 20px;
   background: #f8f9fa;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 200px;
+  min-width: 160px;
   appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
@@ -590,15 +597,15 @@ export default {
 .strategy-card {
   background: white;
   border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 8px;
+  padding: 1rem;
   position: relative;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
-  min-height: 180px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .strategy-card:hover {
@@ -616,7 +623,7 @@ export default {
 }
 
 .card-title {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: bold;
   color: #333;
   margin: 0;
@@ -652,7 +659,7 @@ export default {
 
 .card-description {
   color: #333;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-style: italic;
   margin: 0;
   line-height: 1.4;
@@ -661,7 +668,7 @@ export default {
 
 .card-rating {
   color: #666;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   margin: 0;
   white-space: nowrap;

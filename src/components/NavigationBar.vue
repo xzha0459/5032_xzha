@@ -170,23 +170,22 @@ onMounted(() => {
   position: sticky;
   top: 0;
   z-index: 1000;
-  border-bottom: 1px solid var(--border-light);
 }
 
 .nav-container {
   max-width: 100%;
   margin: 0 auto;
-  padding: 0.6rem 8rem;
+  padding: 0.8rem 8rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .nav-brand {
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--forest-dark);
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.3s ease;
   user-select: none;
@@ -225,13 +224,13 @@ onMounted(() => {
 }
 
 .btn {
-  padding: 0.6rem 1.5rem;
-  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
   border: none;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
 .btn-login {
@@ -278,15 +277,15 @@ onMounted(() => {
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--forest-sage);
   color: var(--forest-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: bold;
   flex-shrink: 0;
 }

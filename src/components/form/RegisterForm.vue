@@ -386,30 +386,31 @@ export default {
 <style scoped>
 .register-form {
   background: var(--forest-light);
-  border-radius: 10px;
+  border-radius: 8px;
   box-shadow: 0 4px 6px var(--shadow-light);
-  padding: 2rem;
-  margin: 2rem 0;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
   border: 1px solid var(--border-light);
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 0.9rem;
 }
 
 .form-control {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.6rem;
   border: 2px solid var(--border-medium);
-  border-radius: 5px;
-  font-size: 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
   transition: border-color 0.3s;
   background: var(--forest-light);
   color: var(--text-primary);
@@ -437,12 +438,12 @@ label {
 
 .btn-submit {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.6rem;
   background: var(--forest-dark);
   color: var(--text-light);
   border: none;
-  border-radius: 5px;
-  font-size: 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -464,9 +465,9 @@ label {
 
 /* Alert styles */
 .alert {
-  padding: 1rem;
-  border-radius: 5px;
-  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
 }
 
 .alert-danger {

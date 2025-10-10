@@ -36,19 +36,20 @@ export default {
     var(--forest-sage) 50%,
     var(--forest-muted) 100%
   );
-  padding: 2rem 0;
+  padding: 1rem 0;
 }
 
 .back-home {
   color: var(--forest-dark);
   text-decoration: none;
   font-weight: 600;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
   transition: all 0.3s ease;
   background: var(--forest-light);
   border: 1px solid var(--border-light);
   display: inline-block;
+  font-size: 0.9rem;
 }
 
 .back-home:hover {
