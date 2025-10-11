@@ -1,67 +1,101 @@
 <template>
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-12 col-8">
-        <div class="register-form">
-          <h2 class="text-center mb-4">Create Account</h2>
+  <div class="auth-form">
+    <h2 class="form-title">Create Account</h2>
 
-          <form @submit.prevent="submitForm">
-            <!-- Form Fields -->
-            <div v-for="field in formFields" :key="field.name" class="form-group mb-3">
-              <label>{{ field.label }}</label>
-
-              <!-- Special handling for password field -->
-              <div v-if="field.name === 'password'" class="password-field-container">
-                <input
-                  v-model="form[field.name]"
-                  @input="validateField(field.name)"
-                  :type="field.type"
-                  :placeholder="field.placeholder"
-                  class="form-control"
-                  :class="{ error: getFieldError(field.name), valid: getFieldValid(field.name) }"
-                />
-              </div>
-
-
-              <!-- Input field for other types -->
-              <input
-                v-else
-                v-model="form[field.name]"
-                @input="validateField(field.name)"
-                :type="field.type"
-                :placeholder="field.placeholder"
-                class="form-control"
-                :class="{ error: getFieldError(field.name), valid: getFieldValid(field.name) }"
-              />
-
-              <span v-if="getFieldError(field.name)" class="error-msg">
-                {{ getFieldError(field.name) }}
-              </span>
-            </div>
-
-            <!-- Submit Button -->
-            <button type="submit" :disabled="!isFormValid" class="btn-submit mb-3">
-              {{ isSubmitting ? 'Creating...' : 'Create Account' }}
-            </button>
-
-            <!-- Form Errors -->
-            <div v-if="formErrors.length" class="alert alert-danger">
-              <h6 class="alert-heading">Please fix:</h6>
-              <ul class="mb-0">
-                <li v-for="error in formErrors" :key="error">{{ error }}</li>
-              </ul>
-            </div>
-
-            <!-- Success Message -->
-            <div v-if="success" class="alert alert-success text-center">
-              ✅ Account created successfully!
-            </div>
-          </form>
-
-
-        </div>
+    <form @submit.prevent="submitForm">
+      <!-- Email Field -->
+      <div class="form-group">
+        <label for="email">Email *</label>
+        <input
+          id="email"
+          v-model="form.email"
+          @input="validateEmail"
+          type="email"
+          placeholder="Enter your email"
+          class="input"
+          :class="{ error: emailError, valid: form.email && !emailError }"
+        />
+        <span v-if="emailError" class="error-msg">{{ emailError }}</span>
       </div>
-    </div>
+
+      <!-- Password Field -->
+      <div class="form-group">
+        <label for="password">Password *</label>
+        <input
+          id="password"
+          v-model="form.password"
+          @input="validatePassword"
+          type="password"
+          placeholder="Enter password"
+          class="input"
+          :class="{ error: passwordError, valid: form.password && !passwordError }"
+        />
+        <span v-if="passwordError" class="error-msg">{{ passwordError }}</span>
+      </div>
+
+      <!-- Confirm Password Field -->
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password *</label>
+        <input
+          id="confirmPassword"
+          v-model="form.confirmPassword"
+          @input="validateConfirmPassword"
+          type="password"
+          placeholder="Confirm your password"
+          class="input"
+          :class="{ error: confirmPasswordError, valid: form.confirmPassword && !confirmPasswordError }"
+        />
+        <span v-if="confirmPasswordError" class="error-msg">{{ confirmPasswordError }}</span>
+      </div>
+
+      <!-- Age Field -->
+      <div class="form-group">
+        <label for="age">Age *</label>
+        <input
+          id="age"
+          v-model.number="form.age"
+          @input="validateAge"
+          type="number"
+          placeholder="Enter your age (13-24)"
+          class="input"
+          :class="{ error: ageError, valid: form.age && !ageError }"
+        />
+        <span v-if="ageError" class="error-msg">{{ ageError }}</span>
+      </div>
+
+      <!-- Username Field -->
+      <div class="form-group">
+        <label for="username">Username *</label>
+        <input
+          id="username"
+          v-model="form.username"
+          @input="validateUsername"
+          type="text"
+          placeholder="Choose a username"
+          class="input"
+          :class="{ error: usernameError, valid: form.username && !usernameError }"
+        />
+        <span v-if="usernameError" class="error-msg">{{ usernameError }}</span>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" :disabled="!isFormValid" class="btn submit">
+        {{ isSubmitting ? 'Creating...' : 'Create Account' }}
+      </button>
+
+      <!-- Form Errors -->
+      <div v-if="formErrors.length" class="alert alert-danger">
+        <h6 class="alert-heading">Please fix:</h6>
+        <ul class="error-list">
+          <li v-for="error in formErrors" :key="error">{{ error }}</li>
+        </ul>
+      </div>
+
+      <!-- Success Message -->
+      <div v-if="success" class="alert alert-success success-message">
+        ✅ Account created successfully!
+      </div>
+    </form>
   </div>
 </template>
 
@@ -98,223 +132,179 @@ export default {
         age: null,
         username: '',
       },
-      // Validation states
-      fieldErrors: {},
-      fieldValids: {},
-      // Form states
+      emailError: '',
+      passwordError: '',
+      confirmPasswordError: '',
+      ageError: '',
+      usernameError: '',
       formErrors: [],
       isSubmitting: false,
       success: false,
-      // Form field configuration
-      formFields: [
-        {
-          name: 'email',
-          label: 'Email *',
-          type: 'email',
-          placeholder: 'Enter your email',
-          validator: (value) => {
-            if (!value) return 'Email is required'
-
-            // Check for XSS attacks
-            if (containsXSS(value)) {
-              logSecurityEvent('xss_attempt', 'XSS attempt detected in email field', { email: value })
-              return 'Invalid email format'
-            }
-
-            // Sanitize input
-            const cleanedValue = sanitizeInput(value)
-
-            // Validate email format
-            if (!isValidEmail(cleanedValue)) {
-              return 'Invalid email format'
-            }
-
-            return ''
-          }
-        },
-        {
-          name: 'password',
-          label: 'Password *',
-          type: 'password',
-          placeholder: 'Enter password',
-          validator: (value) => {
-            if (!value) return 'Password is required'
-
-            // Check for XSS attacks
-            if (containsXSS(value)) {
-              logSecurityEvent('xss_attempt', 'XSS attempt detected in password field')
-              return 'Password contains invalid characters'
-            }
-
-            // Validate password strength (required)
-            const passwordValidation = validatePassword(value)
-            if (!passwordValidation.isValid) {
-              return passwordValidation.message
-            }
-
-            return ''
-          }
-        },
-        {
-          name: 'confirmPassword',
-          label: 'Confirm Password *',
-          type: 'password',
-          placeholder: 'Confirm your password',
-          validator: (value) => {
-            if (!value) return 'Please confirm your password'
-
-            // Validate confirm password
-            const confirmValidation = validateConfirmPassword(this.form.password, value)
-            if (!confirmValidation.isValid) {
-              return confirmValidation.message
-            }
-
-            return ''
-          }
-        },
-        {
-          name: 'age',
-          label: 'Age *',
-          type: 'number',
-          placeholder: 'Enter your age (13-24)',
-          validator: (value) => {
-            if (!value) return 'Age is required'
-
-            const age = parseInt(value)
-            if (isNaN(age)) return 'Age must be a valid number'
-
-            if (!isValidAge(age)) {
-              return 'Age must be between 13-24'
-            }
-
-            return ''
-          }
-        },
-        {
-          name: 'username',
-          label: 'Username *',
-          type: 'text',
-          placeholder: 'Choose a username',
-          validator: (value) => {
-            if (!value) return 'Username is required'
-
-            // Check for XSS attacks
-            if (containsXSS(value)) {
-              logSecurityEvent('xss_attempt', 'XSS attempt detected in username field', { username: value })
-              return 'Username contains invalid characters'
-            }
-
-            // Sanitize input
-            const cleanedValue = sanitizeInput(value)
-
-            // Validate username format
-            if (!isValidUsername(cleanedValue)) {
-              if (cleanedValue.length < 3) return 'Username must be at least 3 characters'
-              if (!/^[a-zA-Z0-9_]+$/.test(cleanedValue)) {
-                return 'Username can only contain letters, numbers, underscore'
-              }
-              if (cleanedValue === 'admin') return 'Username "admin" is reserved'
-              return 'Username contains invalid characters'
-            }
-
-            return ''
-          }
-        },
-      ]
     }
   },
   computed: {
     isFormValid() {
-      return this.formFields.every(field => this.fieldValids[field.name])
+      return this.form.email && this.form.password && this.form.confirmPassword &&
+             this.form.age && this.form.username &&
+             !this.emailError && !this.passwordError && !this.confirmPasswordError &&
+             !this.ageError && !this.usernameError
     }
   },
-  mounted() {
-    // Initialize validation states
-    this.formFields.forEach(field => {
-      this.fieldErrors[field.name] = ''
-      this.fieldValids[field.name] = false
-    })
-
-    // Validate fields with default values
-    this.formFields.forEach(field => {
-      if (this.form[field.name]) {
-        this.validateField(field.name)
-      }
-    })
-
-  },
-
   methods: {
-    // Validation helpers
-    validateField(fieldName) {
-      const field = this.formFields.find(f => f.name === fieldName)
-      if (!field) return
-
-      const value = this.form[fieldName]
-      const error = field.validator(value)
-
-      this.fieldErrors[fieldName] = error
-      this.fieldValids[fieldName] = !error
-    },
-
-    getFieldError(fieldName) {
-      return this.fieldErrors[fieldName] || ''
-    },
-
-    getFieldValid(fieldName) {
-      return this.fieldValids[fieldName] || false
-    },
-
-
-    // Form submission
-    async submitForm() {
-      this.formErrors = []
-      this.isSubmitting = true
-
-      // Validate all fields
-      this.formFields.forEach(field => this.validateField(field.name))
-
-      if (!this.isFormValid) {
-        this.isSubmitting = false
+    validateEmail() {
+      if (!this.form.email) {
+        this.emailError = 'Email is required'
         return
       }
 
+      if (containsXSS(this.form.email)) {
+        logSecurityEvent('xss_attempt', 'XSS attempt detected in email field', { email: this.form.email })
+        this.emailError = 'Invalid email format'
+        return
+      }
+
+      const cleanedEmail = sanitizeInput(this.form.email)
+      if (!isValidEmail(cleanedEmail)) {
+        this.emailError = 'Invalid email format'
+        return
+      }
+
+      this.emailError = ''
+    },
+
+    validatePassword() {
+      if (!this.form.password) {
+        this.passwordError = 'Password is required'
+        return
+      }
+
+      if (containsXSS(this.form.password)) {
+        logSecurityEvent('xss_attempt', 'XSS attempt detected in password field')
+        this.passwordError = 'Password contains invalid characters'
+        return
+      }
+
+      const passwordValidation = validatePassword(this.form.password)
+      if (!passwordValidation.isValid) {
+        this.passwordError = passwordValidation.message
+        return
+      }
+
+      this.passwordError = ''
+      // Re-validate confirm password if it exists
+      if (this.form.confirmPassword) {
+        this.validateConfirmPassword()
+      }
+    },
+
+    validateConfirmPassword() {
+      if (!this.form.confirmPassword) {
+        this.confirmPasswordError = 'Please confirm your password'
+        return
+      }
+
+      const confirmValidation = validateConfirmPassword(this.form.password, this.form.confirmPassword)
+      if (!confirmValidation.isValid) {
+        this.confirmPasswordError = confirmValidation.message
+        return
+      }
+
+      this.confirmPasswordError = ''
+    },
+
+    validateAge() {
+      if (!this.form.age) {
+        this.ageError = 'Age is required'
+        return
+      }
+
+      const age = parseInt(this.form.age)
+      if (isNaN(age)) {
+        this.ageError = 'Age must be a valid number'
+        return
+      }
+
+      if (!isValidAge(age)) {
+        this.ageError = 'Age must be between 13-24'
+        return
+      }
+
+      this.ageError = ''
+    },
+
+    validateUsername() {
+      if (!this.form.username) {
+        this.usernameError = 'Username is required'
+        return
+      }
+
+      if (containsXSS(this.form.username)) {
+        logSecurityEvent('xss_attempt', 'XSS attempt detected in username field', { username: this.form.username })
+        this.usernameError = 'Username contains invalid characters'
+        return
+      }
+
+      const cleanedUsername = sanitizeInput(this.form.username)
+      if (!isValidUsername(cleanedUsername)) {
+        if (cleanedUsername.length < 3) {
+          this.usernameError = 'Username must be at least 3 characters'
+        } else if (!/^[a-zA-Z0-9_]+$/.test(cleanedUsername)) {
+          this.usernameError = 'Username can only contain letters, numbers, underscore'
+        } else if (cleanedUsername === 'admin') {
+          this.usernameError = 'Username "admin" is reserved'
+        } else {
+          this.usernameError = 'Username contains invalid characters'
+        }
+        return
+      }
+
+      this.usernameError = ''
+    },
+
+    async submitForm() {
+      this.formErrors = []
+      this.validateEmail()
+      this.validatePassword()
+      this.validateConfirmPassword()
+      this.validateAge()
+      this.validateUsername()
+
+      if (!this.isFormValid) {
+        return
+      }
+
+      this.isSubmitting = true
+
       try {
-        // Sanitize input data
         const cleanedEmail = sanitizeInput(this.form.email)
         const cleanedPassword = sanitizeInput(this.form.password)
         const cleanedUsername = sanitizeInput(this.form.username)
 
-        // Log registration attempt
         logSecurityEvent('register_attempt', 'User attempting to register', {
           email: cleanedEmail,
           username: cleanedUsername,
           role: 'user'
         })
 
-        // Create user with Firebase Authentication
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           cleanedEmail,
           cleanedPassword
         )
 
-        // Create safe user data
         const safeUserData = createSafeUserData({
           uid: userCredential.user.uid,
           email: cleanedEmail,
           username: cleanedUsername,
           age: parseInt(this.form.age),
-          role: 'user' // All registered users default to regular user
+          role: 'user'
         })
 
-        // Store additional user info in Firestore
         await setDoc(doc(db, 'users', userCredential.user.uid), safeUserData)
 
         this.success = true
         this.isSubmitting = false
 
-        // Log successful registration
         logSecurityEvent('register_success', 'User registered successfully', {
           uid: userCredential.user.uid,
           email: cleanedEmail,
@@ -322,12 +312,10 @@ export default {
           role: 'user'
         })
 
-        // Reset form and validation states
-        this.resetForm()
-
         console.log('User created successfully:', userCredential.user.uid)
 
-        // Redirect to login page after 2 seconds
+        this.resetForm()
+
         setTimeout(() => {
           this.success = false
           this.router.push('/login')
@@ -337,31 +325,25 @@ export default {
         console.error('Error creating user:', error)
         this.isSubmitting = false
 
-        // Log registration failure
         logSecurityEvent('register_failed', 'Registration attempt failed', {
           email: this.form.email,
           username: this.form.username,
           error: error.code
         })
 
-        // Use security error handling
         const securityError = handleSecurityError(error, 'register_attempt', {
           email: this.form.email,
           username: this.form.username
         })
 
-        // Handle specific Firebase errors
-        if (error.code === 'auth/email-already-in-use') {
-          this.formErrors.push('Email is already registered')
-        } else if (error.code === 'auth/weak-password') {
-          this.formErrors.push('Password is too weak')
-        } else if (error.code === 'auth/invalid-email') {
-          this.formErrors.push('Invalid email address')
-        } else if (error.code === 'auth/network-request-failed') {
-          this.formErrors.push('Network error. Please check your connection.')
-        } else {
-          this.formErrors.push(securityError.message)
+        const errorMessages = {
+          'auth/email-already-in-use': 'Email is already registered',
+          'auth/weak-password': 'Password is too weak',
+          'auth/invalid-email': 'Invalid email address',
+          'auth/network-request-failed': 'Network error. Please check your connection.'
         }
+
+        this.formErrors.push(errorMessages[error.code] || securityError.message)
       }
     },
 
@@ -373,142 +355,16 @@ export default {
         age: null,
         username: '',
       }
-
-      this.formFields.forEach(field => {
-        this.fieldErrors[field.name] = ''
-        this.fieldValids[field.name] = false
-      })
+      this.emailError = ''
+      this.passwordError = ''
+      this.confirmPasswordError = ''
+      this.ageError = ''
+      this.usernameError = ''
     }
   }
 }
 </script>
 
 <style scoped>
-.register-form {
-  background: var(--forest-light);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px var(--shadow-light);
-  padding: 1.5rem;
-  margin: 1.5rem 0;
-  border: 1px solid var(--border-light);
-}
-
-.form-group {
-  margin-bottom: 0.75rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
-
-.form-control {
-  width: 100%;
-  padding: 0.6rem;
-  border: 2px solid var(--border-medium);
-  border-radius: 4px;
-  font-size: 0.9rem;
-  transition: border-color 0.3s;
-  background: var(--forest-light);
-  color: var(--text-primary);
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--forest-deep);
-}
-
-.form-control.valid {
-  border-color: var(--forest-deep);
-}
-
-.form-control.error {
-  border-color: #dc3545;
-}
-
-.error-msg {
-  color: #dc3545;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-  display: block;
-}
-
-.btn-submit {
-  width: 100%;
-  padding: 0.6rem;
-  background: var(--forest-dark);
-  color: var(--text-light);
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px var(--shadow-medium);
-}
-
-.btn-submit:hover:not(:disabled) {
-  background: var(--forest-deep);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--shadow-dark);
-}
-
-.btn-submit:disabled {
-  background: var(--forest-muted);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* Alert styles */
-.alert {
-  padding: 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 0.75rem;
-}
-
-.alert-danger {
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
-  color: #721c24;
-}
-
-.alert-success {
-  background: #d4edda;
-  border: 1px solid #c3e6cb;
-  color: #155724;
-}
-
-.alert-heading {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
-}
-
-.alert ul {
-  margin: 0;
-  padding-left: 1.2rem;
-}
-
-
-/* Password Security Styles */
-.password-field-container {
-  position: relative;
-}
-
-/* Responsive adjustments */
-@media (max-width: 767px) {
-  .password-strength-container {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.25rem;
-  }
-
-  .password-strength-text {
-    text-align: center;
-  }
-}
 
 </style>

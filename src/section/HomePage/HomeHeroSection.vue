@@ -1,11 +1,9 @@
 <template>
   <section class="hero-section">
-    <div class="hero-container">
-      <div class="hero-content">
-        <h1 class="hero-title">You're Not Alone in Your Journey</h1>
-        <p class="hero-subtitle">Pay attention to mental health is essential...</p>
-        <button class="btn btn-primary">GET STARTED</button>
-      </div>
+    <div class="hero-content">
+      <h1 class="hero-title">You're Not Alone in Your Journey</h1>
+      <p class="hero-subtitle">Pay attention to mental health is essential...</p>
+      <button class="btn primary">GET STARTED</button>
     </div>
   </section>
 </template>
@@ -25,18 +23,17 @@
   padding: 0;
 }
 
-.hero-container {
+.hero-content {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 90vh;
   padding: 1.5rem;
-}
-
-.hero-content {
   text-align: center;
   max-width: 700px;
   width: 100%;
+  margin: 0 auto;
 }
 
 .hero-title {
@@ -47,54 +44,10 @@
   line-height: 1.2;
 }
 
-/* >=768px */
-@media (min-width: 768px) {
-  .hero-title {
-    white-space: nowrap;
-  }
-}
-
-/* <768px  */
-@media (max-width: 767px) {
-  .hero-title {
-    font-size: 2.8rem;
-    white-space: normal;
-    line-height: 1.3;
-  }
-
-  .hero-container {
-    padding: 1rem;
-  }
-}
-
 .hero-subtitle {
   font-size: 1.2rem;
   margin-bottom: 1.5rem;
   opacity: 0.9;
   line-height: 1.4;
-}
-
-.btn {
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.btn-primary {
-  background: var(--forest-dark);
-  color: var(--text-light);
-  box-shadow: 0 4px 15px var(--shadow-medium);
-}
-
-.btn-primary:hover {
-  background: var(--forest-deep);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--shadow-dark);
 }
 </style>

@@ -1,38 +1,34 @@
 <template>
-  <div class="admin-page">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-12 col-10">
-          <div class="admin-panel">
-            <h1 class="admin-title">Admin Panel</h1>
-            <p class="admin-subtitle">Manage users and system settings</p>
+  <div class="page">
+    <div class="user-page-header">
+      <h1 class="user-page-title">Admin Panel</h1>
+      <p class="user-page-subtitle">Manage users, strategies, and system settings</p>
+    </div>
 
-            <!-- Loading state for auth -->
-            <div v-if="authLoading" class="loading-state">
-              <div class="spinner"></div>
-              <p>Loading...</p>
-            </div>
-
-            <!-- Admin content -->
-            <div v-else-if="isAdminUser">
-
-              <!-- Action Buttons -->
-              <div class="admin-actions">
-                <EmailSender />
-              </div>
-
-              <!-- Tables Section -->
-              <TableSection
-                :strategies="strategies"
-                :users="users"
-                @update:strategies="loadStrategiesFromFirestore"
-                @update:users="loadUsersFromFirestore"
-              />
-
-            </div> <!-- End admin content -->
-          </div>
+    <div class="user-page-content">
+      <div class="admin-panel">
+        <!-- Loading state for auth -->
+        <div v-if="authLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading...</p>
         </div>
-      </div>
+
+        <!-- Admin content -->
+        <div v-else-if="isAdminUser">
+          <!-- Action Buttons -->
+          <div class="admin-actions">
+            <EmailSender />
+          </div>
+
+          <!-- Tables Section -->
+          <TableSection
+            :strategies="strategies"
+            :users="users"
+            @update:strategies="loadStrategiesFromFirestore"
+            @update:users="loadUsersFromFirestore"
+          />
+        </div> <!-- End admin content -->
+      </div> <!-- End admin-panel -->
     </div>
   </div>
 </template>
@@ -41,7 +37,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { getDocs, collection } from 'firebase/firestore'
 import { db } from '@/firebase.js'
-import { useAuth } from '@/composables/useAuth.js'
+import { useAuth } from '@/utils/useAuth.js'
 import EmailSender from '@/components/EmailSender.vue'
 import TableSection from '@/section/AdminPage/TableSection.vue'
 
@@ -95,71 +91,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Layout */
-.admin-page {
-  background: var(--forest-light);
-  padding: 3rem;
-}
-
-.admin-panel {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px var(--shadow-medium);
-  padding: 2rem;
-  margin: 1.5rem 0;
-}
-
-/* Typography */
-.admin-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--forest-dark);
-  margin-bottom: 0.4rem;
-  text-align: center;
-}
-
-.admin-subtitle {
-  font-size: 1rem;
-  color: var(--forest-medium);
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.section-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--forest-dark);
-  margin-bottom: 1rem;
-  border-bottom: 2px solid var(--forest-sage);
-  padding-bottom: 0.4rem;
-}
-
-
-/* Admin sections */
-.admin-section {
-  margin-bottom: 1.5rem;
-}
-
-.admin-section:last-child {
-  margin-bottom: 0;
-}
-
 /* Action Buttons */
 .admin-actions {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 1.5rem;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .admin-panel {
-    padding: 1rem;
-    margin: 1rem 0;
-  }
-
-  .admin-title {
-    font-size: 2rem;
-  }
 }
  </style>

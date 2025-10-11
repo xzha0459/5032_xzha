@@ -4,7 +4,7 @@ import HomePage from '@/page/HomePage.vue'
 import RegisterPage from '@/page/RegisterPage.vue'
 import LoginPage from '@/page/LoginPage.vue'
 import AdminPage from '@/page/AdminPage.vue'
-import EmotionManagementPage from '@/page/EmotionManagementPage.vue'
+import WellbeingPage from '@/page/WellbeingPage.vue'
 
 const routes = [
   {
@@ -23,9 +23,9 @@ const routes = [
     component: RegisterPage,
   },
   {
-    path: '/emotion-management',
-    name: 'EmotionManagement',
-    component: EmotionManagementPage,
+    path: '/wellbeing',
+    name: 'Wellbeing',
+    component: WellbeingPage,
   },
   {
     path: '/admin',
