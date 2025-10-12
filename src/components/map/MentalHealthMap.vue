@@ -61,6 +61,9 @@ export default {
 
     // Initialize Google Maps
     const initMap = () => {
+      console.log('Initializing map...')
+      console.log('Map container:', mapContainer.value)
+
       if (!mapContainer.value) {
         console.error('Map container not found')
         return
@@ -72,11 +75,14 @@ export default {
         return
       }
 
+      console.log('Creating Google Maps instance...')
       map.value = new google.maps.Map(mapContainer.value, {
         center: { lat: -37.8136, lng: 144.9631 }, // Melbourne coordinates
         zoom: 12,
         mapTypeId: google.maps.MapTypeId.ROADMAP
       })
+
+      console.log('Map created successfully:', map.value)
 
       // Initialize services (only for directions, not places)
       directionsService.value = new google.maps.DirectionsService()
@@ -569,10 +575,14 @@ export default {
     }
 
     onMounted(async () => {
+      console.log('MentalHealthMap component mounted')
       await nextTick()
+      console.log('After nextTick, mapContainer:', mapContainer.value)
 
       try {
+        console.log('Loading Google Maps API...')
         await loadGoogleMapsAPI()
+        console.log('Google Maps API loaded, initializing map...')
         initMap()
       } catch (error) {
         console.error('Failed to load Google Maps API:', error)
@@ -621,18 +631,104 @@ export default {
   position: relative;
   width: 100%;
   height: 100%;
+  min-height: 90vh;
 }
 
 .map {
   width: 100%;
   height: 100%;
+  min-height: 90vh;
   position: relative;
 }
 
 .search-this-area-btn {
   position: absolute;
   bottom: 30px;
-  left: 40%;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 9999;
+}
+
+/* Responsive Design for Map */
+@media (max-width: 768px) {
+  .search-this-area-btn {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.6rem 1.2rem;
+    font-size: 0.8rem;
+    width: auto;
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-this-area-btn {
+    bottom: 15px;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    min-width: 120px;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  .search-this-area-btn {
+    bottom: 15px;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* InfoWindow responsive styles */
+:deep(.info-window) {
+  max-width: 250px;
+  font-size: 0.9rem;
+}
+
+:deep(.info-window h3) {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+:deep(.info-window p) {
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+:deep(.navigate-btn) {
+  background: var(--forest-dark);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+:deep(.navigate-btn:hover) {
+  background: var(--forest-deep);
+}
+
+@media (max-width: 480px) {
+  :deep(.info-window) {
+    max-width: 200px;
+    font-size: 0.8rem;
+  }
+
+  :deep(.info-window h3) {
+    font-size: 0.9rem;
+  }
+
+  :deep(.info-window p) {
+    font-size: 0.75rem;
+  }
+
+  :deep(.navigate-btn) {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+  }
 }
 </style>

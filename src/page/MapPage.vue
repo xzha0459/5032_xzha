@@ -6,44 +6,27 @@
         <h1 class="card-title">Places</h1>
         <div class="search-controls">
           <div class="search-input-group">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search mental health services..."
-              class="search"
-              @keyup.enter="handleSearch"
-            />
+            <div class="search-input-wrapper">
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search mental health services..."
+                class="search"
+                @keyup.enter="handleSearch"
+              />
+              <button @click="requestLocation" class="location-icon-btn" title="Get My Location">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
+                </svg>
+              </button>
+            </div>
             <button @click="handleSearch" class="btn action search-btn">
               Search
             </button>
           </div>
-          <button @click="requestLocation" class="btn secondary">
-            Get My Location
-          </button>
         </div>
       </div>
 
-      <!-- Selected Service Details -->
-      <div v-if="selectedService" class="modal">
-        <div class="modal-header">
-          <h3 class="modal-title">Selected Service</h3>
-          <button @click="selectedService = null" class="close-button">×</button>
-        </div>
-        <div class="modal-body">
-          <h4 class="modal-description">{{ selectedService.name }}</h4>
-          <ul class="modal-list">
-            <li><strong>Category:</strong> {{ selectedService.category }}</li>
-            <li><strong>Address:</strong> {{ selectedService.address }}</li>
-            <li v-if="selectedService.distance !== undefined"><strong>Distance:</strong> {{ selectedService.distance.toFixed(1) }} km</li>
-            <li><strong>Rating:</strong> ⭐ {{ selectedService.rating }}</li>
-          </ul>
-        </div>
-        <div class="modal-footer">
-          <button @click="navigateToService(selectedService)" class="btn primary">
-            → Get Directions
-          </button>
-        </div>
-      </div>
 
       <!-- Services List -->
       <div class="services-list">
@@ -77,14 +60,16 @@
               </p>
             </div>
             <div class="card-footer">
-              <button class="btn primary" @click.stop="navigateToService(service)">
-                → Directions
-              </button>
+              <button class="btn secondary" @click.stop="navigateToService(service)">Directions</button>
+              <button class="btn secondary" @click.stop="viewInGoogleMaps(service)">Google Maps</button>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Resizer -->
+    <div class="resizer" @mousedown="startResize"></div>
 
     <!-- Right Panel - Map -->
     <div class="map-panel">
@@ -99,7 +84,7 @@
 </template>
 
 <script>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import MentalHealthMap from '@/components/map/MentalHealthMap.vue'
 
 export default {
@@ -113,6 +98,15 @@ export default {
     const selectedService = ref(null)
     const filteredServices = ref([])
     const isLoading = ref(false)
+
+    // Resize functionality
+    const isResizing = ref(false)
+    const placesPanelWidth = ref(35) // Default width percentage
+
+    // Check if device is mobile
+    const isMobile = computed(() => {
+      return window.innerWidth <= 768
+    })
 
     // Handle search
     const handleSearch = () => {
@@ -141,6 +135,45 @@ export default {
       if (mapComponent.value) {
         mapComponent.value.navigateToService(service)
       }
+    }
+
+    // View service in Google Maps
+    const viewInGoogleMaps = (service) => {
+      if (service && service.location) {
+        const { lat, lng } = service.location
+        const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`
+        window.open(googleMapsUrl, '_blank')
+      }
+    }
+
+    // Resize functionality
+    const startResize = () => {
+      if (isMobile.value) return // Don't allow resize on mobile
+
+      isResizing.value = true
+      document.addEventListener('mousemove', handleResize)
+      document.addEventListener('mouseup', stopResize)
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    }
+
+    const handleResize = (e) => {
+      if (!isResizing.value) return
+
+      const containerWidth = window.innerWidth
+      const newWidth = (e.clientX / containerWidth) * 100
+
+      // Constrain width between 20% and 70%
+      const constrainedWidth = Math.max(20, Math.min(70, newWidth))
+      placesPanelWidth.value = constrainedWidth
+    }
+
+    const stopResize = () => {
+      isResizing.value = false
+      document.removeEventListener('mousemove', handleResize)
+      document.removeEventListener('mouseup', stopResize)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
     }
 
     // Handle service selection from map
@@ -184,10 +217,15 @@ export default {
       selectedService,
       filteredServices,
       isLoading,
+      isMobile,
+      placesPanelWidth,
+      isResizing,
       handleSearch,
       requestLocation,
       selectService,
       navigateToService,
+      viewInGoogleMaps,
+      startResize,
       onServiceSelected,
       onLocationUpdated
     }
@@ -205,7 +243,7 @@ export default {
 
 /* Left Panel - Places */
 .places-panel {
-  width: 35%;
+  width: v-bind(placesPanelWidth + '%');
   max-height: 90vh;
   background: var(--bg-card);
   border-right: 1px solid var(--border-light);
@@ -226,8 +264,43 @@ export default {
   align-items: center;
 }
 
-.search-input-group .search {
+.search-input-wrapper {
+  position: relative;
   flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-wrapper .search {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.location-icon-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  z-index: 10;
+  color: var(--forest-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.location-icon-btn:hover {
+  color: var(--forest-dark);
+}
+
+.location-icon-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .search-btn {
@@ -281,6 +354,7 @@ export default {
 
 /* Custom card styles - no border, only bottom border */
 .card {
+  padding: 1.5rem;
   border: none;
   border-bottom: 1px solid var(--border-light);
   box-shadow: none;
@@ -301,57 +375,170 @@ export default {
   background: var(--forest-light);
 }
 
-/* Selected Service Details - using global card styles */
-.modal {
-  padding: 1rem;
+
+
+/* Resizer */
+.resizer {
+  width: 2px;
+  background: var(--border-light);
+  cursor: col-resize;
+  transition: background-color 0.2s ease;
+  position: relative;
+  z-index: 10;
 }
 
-.modal-list li {
-  padding: 0.5rem 0;
+.resizer:hover {
+  background: var(--forest-medium);
 }
 
+.resizer:active {
+  background: var(--forest-dark);
+}
 
 /* Right Panel - Map */
 .map-panel {
   flex: 1;
   background: #ffffff;
   position: relative;
+  height: 100%;
+  min-height: 60vh;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .map-page {
     flex-direction: column;
+    min-height: 100vh;
   }
 
   .places-panel {
     width: 100%;
-    height: 40%;
-    min-width: unset;
+    height: 50vh;
+    max-height: 50vh;
+    min-height: 50vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    overflow-y: auto;
   }
 
   .map-panel {
-    height: 60%;
+    height: 50vh;
+    min-height: 50vh;
   }
 
-  .places-title {
-    font-size: 20px;
+  .search-controls {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
+  .search-input-group {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .search-input-wrapper {
+    flex: 1;
+  }
+
+  .search-input-wrapper .search {
+    padding-right: 40px; /* 保持图标空间 */
+  }
+
+  .search-btn {
+    width: auto;
+    min-width: 80px;
+  }
+
+  .services-list {
+    max-height: calc(50vh - 100px);
+  }
+
+  .card {
+    padding: 0.8rem;
+  }
+
+  .resizer {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {
+  .map-page {
+    min-height: 100vh;
+  }
+
   .places-panel {
-    height: 35%;
+    height: 50vh;
+    max-height: 50vh;
+    min-height: 50vh;
+    overflow-y: auto;
   }
 
   .map-panel {
-    height: 65%;
+    height: 50vh;
+    min-height: 50vh;
   }
 
-  .places-header {
-    padding: 15px;
+  .search-controls {
+    padding: 0.5rem;
   }
 
+  .search-input-group {
+    gap: 0.3rem;
+  }
+
+  .search-input-wrapper {
+    flex: 1;
+  }
+
+  .search-input-wrapper .search {
+    font-size: 0.9rem;
+    padding: 0.6rem;
+    padding-right: 40px; /* 保持图标空间 */
+  }
+
+  .search-btn {
+    width: auto;
+    min-width: 70px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .location-icon-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .services-list {
+    max-height: calc(50vh - 100px);
+  }
+
+  .card {
+    padding: 0.6rem;
+    margin: 0.3rem;
+  }
+
+  .card-body p {
+    font-size: 0.8rem;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .places-panel {
+    height: auto;
+    max-height: 50vh;
+    min-height: auto;
+    overflow-y: auto;
+  }
+
+  .map-panel {
+    height: 50vh;
+    min-height: 50vh;
+  }
+
+  .services-list {
+    max-height: calc(50vh - 100px);
+  }
 }
 </style>

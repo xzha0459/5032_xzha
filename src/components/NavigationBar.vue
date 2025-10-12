@@ -4,15 +4,27 @@
       <!-- Logo/Brand -->
       <div class="nav-brand" @click="goToHome">MindU</div>
 
-      <!-- Navigation Items -->
-      <div class="nav-items">
+      <!-- Mobile Menu Button -->
+      <button
+        class="mobile-menu-btn"
+        @click="toggleMobileMenu"
+        :class="{ 'active': isMobileMenuOpen }"
+        aria-label="Toggle mobile menu"
+      >
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+
+      <!-- Desktop Navigation Items -->
+      <div class="nav-items desktop-nav">
         <button @click="goToHome" class="nav-link">Home</button>
         <button @click="goToWellbeing" class="nav-link">Wellbeing</button>
         <button @click="goToMap" class="nav-link">Find Support</button>
       </div>
 
-      <!-- Right side content -->
-      <div class="nav-items">
+      <!-- Desktop Right side content -->
+      <div class="nav-items desktop-nav">
         <!-- Not logged in - show Login/Register buttons -->
         <template v-if="!user">
           <button @click="goToLogin" class="nav-btn btn-login">Login</button>
@@ -40,16 +52,78 @@
         </template>
       </div>
     </div>
+
+    <!-- Mobile Menu Backdrop -->
+    <div v-if="isMobileMenuOpen" class="mobile-menu-backdrop" @click="closeMobileMenu"></div>
+
+    <!-- Mobile Navigation Menu -->
+    <div class="mobile-nav" :class="{ 'open': isMobileMenuOpen }">
+      <div class="mobile-nav-content">
+        <!-- Navigation Links -->
+        <div class="mobile-nav-section">
+          <button @click="() => { goToHome(); closeMobileMenu(); }"
+                  class="mobile-nav-link"
+                  :class="{ 'active': isCurrentRoute('Home') }">
+            Home
+          </button>
+          <button @click="() => { goToWellbeing(); closeMobileMenu(); }"
+                  class="mobile-nav-link"
+                  :class="{ 'active': isCurrentRoute('Wellbeing') }">
+            Wellbeing
+          </button>
+          <button @click="() => { goToMap(); closeMobileMenu(); }"
+                  class="mobile-nav-link"
+                  :class="{ 'active': isCurrentRoute('Map') }">
+            Find Support
+          </button>
+        </div>
+
+        <!-- User Section -->
+        <div class="mobile-nav-section">
+          <!-- Not logged in -->
+          <template v-if="!user">
+            <button @click="() => { goToLogin(); closeMobileMenu(); }" class="mobile-nav-btn btn-login">
+              Login
+            </button>
+            <button @click="() => { goToRegister(); closeMobileMenu(); }" class="mobile-nav-btn btn-register">
+              Register
+            </button>
+          </template>
+
+          <!-- Logged in -->
+          <template v-else>
+            <div class="mobile-user-info">
+              <div class="mobile-user-avatar">{{ userInitial }}</div>
+              <div class="mobile-user-details">
+                <div class="mobile-user-name">{{ userDisplayName }}</div>
+                <div class="mobile-user-email">{{ user?.email }}</div>
+              </div>
+            </div>
+
+            <button v-if="isAdminUser" @click="() => { goToAdmin(); closeMobileMenu(); }"
+                    class="mobile-nav-link"
+                    :class="{ 'active': isCurrentRoute('Admin') }">
+              Admin Panel
+            </button>
+
+            <button @click="() => { logout(); closeMobileMenu(); }" class="mobile-nav-link logout-item">
+              Logout
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
   </nav>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/utils/useAuth.js'
 import { safeText, sanitizeInput, logSecurityEvent } from '@/utils/security.js'
 
 const router = useRouter()
+const route = useRoute()
 
 // Use the auth composable
 const { user, userProfile, userRole, isAdminUser, logout: authLogout } = useAuth()
@@ -57,6 +131,9 @@ const { user, userProfile, userRole, isAdminUser, logout: authLogout } = useAuth
 // Local state for dropdown
 const isDropdownOpen = ref(false)
 const dropdownRef = ref(null)
+
+// Mobile menu state
+const isMobileMenuOpen = ref(false)
 
 // Computed properties
 const userDisplayName = computed(() => {
@@ -74,28 +151,39 @@ const userInitial = computed(() => {
   return safeName.charAt(0).toUpperCase()
 })
 
+// Route detection for active states
+const isCurrentRoute = (routeName) => {
+  return route.name === routeName
+}
+
 // Navigation methods
 const goToHome = () => {
+  console.log('goToHome clicked')
   router.push('/')
 }
 
 const goToLogin = () => {
+  console.log('goToLogin clicked')
   router.push('/login')
 }
 
 const goToRegister = () => {
+  console.log('goToRegister clicked')
   router.push('/register')
 }
 
 const goToWellbeing = () => {
+  console.log('goToWellbeing clicked')
   router.push('/wellbeing')
 }
 
 const goToMap = () => {
+  console.log('goToMap clicked')
   router.push('/map')
 }
 
 const goToAdmin = () => {
+  console.log('goToAdmin clicked')
   router.push('/admin')
   closeDropdown()
 }
@@ -107,6 +195,28 @@ const toggleDropdown = () => {
 
 const closeDropdown = () => {
   isDropdownOpen.value = false
+}
+
+// Mobile menu methods
+const toggleMobileMenu = () => {
+  console.log('toggleMobileMenu clicked, current state:', isMobileMenuOpen.value)
+  isMobileMenuOpen.value = !isMobileMenuOpen.value
+  // Prevent body scroll when menu is open
+  if (isMobileMenuOpen.value) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+  // Close desktop dropdown when opening mobile menu
+  if (isMobileMenuOpen.value) {
+    closeDropdown()
+  }
+}
+
+const closeMobileMenu = () => {
+  console.log('closeMobileMenu called')
+  isMobileMenuOpen.value = false
+  document.body.style.overflow = ''
 }
 
 // Logout method
@@ -142,14 +252,30 @@ const handleClickOutside = (event) => {
   }
 }
 
+// Close mobile menu when clicking outside
+const handleMobileMenuClickOutside = (event) => {
+  const mobileMenuBtn = document.querySelector('.mobile-menu-btn')
+  const mobileNav = document.querySelector('.mobile-nav')
+
+  if (mobileMenuBtn && !mobileMenuBtn.contains(event.target) &&
+      mobileNav && !mobileNav.contains(event.target)) {
+    closeMobileMenu()
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   // Add click outside listener
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('click', handleMobileMenuClickOutside)
 
   // Cleanup function
   onUnmounted(() => {
+    // Restore body scroll when component is unmounted
+    document.body.style.overflow = ''
+
     document.removeEventListener('click', handleClickOutside)
+    document.removeEventListener('click', handleMobileMenuClickOutside)
   })
 })
 </script>
@@ -270,5 +396,280 @@ onMounted(() => {
   font-size: 0.95rem;
 }
 
-/* Responsive */
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1001;
+  position: relative;
+}
+
+.hamburger-line {
+  width: 100%;
+  height: 2px;
+  background: var(--forest-dark);
+  transition: all 0.3s ease;
+  position: absolute;
+}
+
+.hamburger-line:nth-child(1) {
+  top: 6px;
+}
+
+.hamburger-line:nth-child(2) {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.hamburger-line:nth-child(3) {
+  bottom: 6px;
+}
+
+/* Active state - forms X */
+.mobile-menu-btn.active .hamburger-line:nth-child(1) {
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.mobile-menu-btn.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.mobile-menu-btn.active .hamburger-line:nth-child(3) {
+  bottom: 50%;
+  transform: translateY(50%) rotate(-45deg);
+}
+
+/* Mobile Menu Backdrop */
+.mobile-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+}
+
+/* Mobile Navigation */
+.mobile-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--forest-light);
+  transform: translateY(-100%);
+  transition: transform 0.2s ease;
+  z-index: 1000;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding-top: 70px;
+}
+
+.mobile-nav.open {
+  transform: translateY(0);
+}
+
+.mobile-nav-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mobile-nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--forest-dark);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.mobile-nav-link.active {
+  background: var(--forest-medium);
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+.mobile-nav-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.mobile-nav-btn.btn-login {
+  background: transparent;
+  color: var(--forest-dark);
+  border: 1px solid var(--forest-medium);
+}
+
+.mobile-nav-btn.btn-login:hover,
+.mobile-nav-btn.btn-login:active {
+  background: var(--forest-sage);
+}
+
+.mobile-nav-btn.btn-register {
+  background: var(--forest-dark);
+  color: var(--text-light);
+}
+
+.mobile-nav-btn.btn-register:hover,
+.mobile-nav-btn.btn-register:active {
+  background: var(--forest-deep);
+}
+
+/* Mobile User Info */
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--forest-sage);
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--forest-dark);
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin-right: 0.75rem;
+}
+
+.mobile-user-details {
+  flex: 1;
+}
+
+.mobile-user-name {
+  font-weight: 600;
+  color: var(--forest-dark);
+  font-size: 0.95rem;
+}
+
+.mobile-user-email {
+  font-size: 0.75rem;
+  color: var(--forest-deep);
+  margin-top: 0.1rem;
+}
+
+.logout-item {
+  color: #dc3545;
+}
+
+.logout-item:hover {
+  background: #f8d7da;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .nav-container {
+    padding: 0.6rem 1rem;
+  }
+
+  .nav-brand {
+    font-size: 1.2rem;
+  }
+
+  .mobile-nav {
+    padding-top: 60px;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-menu-btn {
+    display: none;
+  }
+
+  .mobile-nav {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-container {
+    padding: 0.5rem;
+  }
+
+  .nav-brand {
+    font-size: 1.1rem;
+  }
+
+  .mobile-nav-content {
+    padding: 0.75rem;
+  }
+
+  .mobile-nav-link {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .mobile-nav-btn {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .mobile-nav {
+    padding-top: 50px;
+  }
+
+  .mobile-user-info {
+    padding: 0.5rem;
+  }
+
+  .mobile-user-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+
+  .mobile-user-name {
+    font-size: 0.9rem;
+  }
+
+  .mobile-user-email {
+    font-size: 0.7rem;
+  }
+}
 </style>
