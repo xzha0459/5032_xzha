@@ -466,35 +466,7 @@ export default {
   margin-bottom: 3rem;
 }
 
-/* Card Footer */
-.card-rating {
-  color: #666;
-  font-size: 0.75rem;
-  font-weight: 500;
-  margin: 0;
-  white-space: nowrap;
-}
-
 /* Modal styles */
-.modal-list {
-  list-style: none;
-  padding: 0;
-}
-
-.modal-list li {
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.modal-list li:last-child {
-  border-bottom: none;
-}
-
-.modal-list strong {
-  color: var(--forest-deep);
-  font-weight: 600;
-}
-
 .modal-rating {
   text-align: center;
   padding: 1rem;

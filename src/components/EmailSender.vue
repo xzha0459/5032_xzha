@@ -118,7 +118,7 @@ export default {
           throw new Error('Recipient, subject and content are required')
         }
 
-        const response = await fetch('https://sendemail-ha3ghdr32q-km.a.run.app', {
+        const response = await fetch('https://emailsender-ha3ghdr32q-uc.a.run.app', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

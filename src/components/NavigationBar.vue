@@ -8,6 +8,7 @@
       <div class="nav-items">
         <button @click="goToHome" class="nav-link">Home</button>
         <button @click="goToWellbeing" class="nav-link">Wellbeing</button>
+        <button @click="goToMap" class="nav-link">Find Support</button>
       </div>
 
       <!-- Right side content -->
@@ -88,6 +89,10 @@ const goToRegister = () => {
 
 const goToWellbeing = () => {
   router.push('/wellbeing')
+}
+
+const goToMap = () => {
+  router.push('/map')
 }
 
 const goToAdmin = () => {

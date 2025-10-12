@@ -5,6 +5,7 @@ import RegisterPage from '@/page/RegisterPage.vue'
 import LoginPage from '@/page/LoginPage.vue'
 import AdminPage from '@/page/AdminPage.vue'
 import WellbeingPage from '@/page/WellbeingPage.vue'
+import MapPage from '@/page/MapPage.vue'
 
 const routes = [
   {
@@ -26,6 +27,11 @@ const routes = [
     path: '/wellbeing',
     name: 'Wellbeing',
     component: WellbeingPage,
+  },
+  {
+    path: '/map',
+    name: 'Map',
+    component: MapPage,
   },
   {
     path: '/admin',

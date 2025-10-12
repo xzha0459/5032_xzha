@@ -1,27 +1,44 @@
 /* eslint-env node */
-const { onRequest } = require('firebase-functions/v2/https');
-const { setGlobalOptions } = require('firebase-functions');
+require('dotenv').config();
+const functions = require('firebase-functions');
 const sgMail = require('@sendgrid/mail');
-const cors = require('cors')({ origin: true });
+const cors = require('cors')({
+  origin: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+});
+const axios = require('axios');
 
-// SendGrid Configuration
+// Configuration from .env file
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const SENDGRID_SENDER = process.env.SENDGRID_SENDER || 'hezitt0925@gmail.com';
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
+// 环境变量检查（部署时可能还没有设置）
 if (!SENDGRID_API_KEY) {
-  throw new Error('SENDGRID_API_KEY environment variable is required');
+  console.warn('SENDGRID_API_KEY environment variable is not set');
 }
 
-sgMail.setApiKey(SENDGRID_API_KEY);
-setGlobalOptions({ region: 'australia-southeast2' });
+if (!GOOGLE_MAPS_API_KEY) {
+  console.warn('GOOGLE_MAPS_API_KEY environment variable is not set');
+}
 
-exports.sendEmail = onRequest((req, res) => {
+if (SENDGRID_API_KEY) {
+  sgMail.setApiKey(SENDGRID_API_KEY);
+}
+
+
+exports.emailsender = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Only POST allowed' });
     }
 
     try {
+      if (!SENDGRID_API_KEY) {
+        return res.status(500).json({ error: 'SendGrid API key not configured' });
+      }
+
       const { to, subject, message, attachmentBase64, attachmentName } = req.body;
 
       if (!to || !subject || !message) {
@@ -57,6 +74,290 @@ exports.sendEmail = onRequest((req, res) => {
 
     } catch (error) {
       console.error('SendGrid Error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+});
+
+// 搜索心理健康服务的Firebase Function
+exports.searchMentalHealthServices = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+    // 辅助函数定义在内部
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // 地球半径，单位公里
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function isMentalHealthRelated(place) {
+      const name = place.name.toLowerCase();
+      const types = place.types || [];
+
+      // 检查是否为健康相关场所
+      const healthTypes = ['health', 'hospital', 'doctor', 'dentist', 'pharmacy', 'physiotherapist'];
+      const isHealthType = types.some(type => healthTypes.includes(type));
+
+      // 检查心理健康关键词
+      const mentalHealthKeywords = [
+        'mental health', 'psychologist', 'psychology', 'psychiatrist', 'psychiatry',
+        'counseling', 'counselor', 'therapy', 'therapist', 'counselling',
+        'headspace', 'lifeline', 'beyond blue', 'crisis', 'emergency',
+        'support group', 'mental health clinic', 'mental health service',
+        'wellness', 'wellbeing', 'depression', 'anxiety', 'stress'
+      ];
+
+      const hasMentalHealthKeyword = mentalHealthKeywords.some(keyword =>
+        name.includes(keyword)
+      );
+
+      return isHealthType || hasMentalHealthKeyword;
+    }
+
+    function processPlacesResults(results) {
+      const seen = new Set();
+      const services = [];
+
+      results.forEach(place => {
+        if (seen.has(place.place_id)) return;
+        seen.add(place.place_id);
+
+        // 只处理心理健康相关场所
+        if (!isMentalHealthRelated(place)) {
+          return;
+        }
+
+        // 确定服务类型
+        let serviceType = 'support';
+        const name = place.name.toLowerCase();
+
+        if (name.includes('emergency') || name.includes('crisis') ||
+            name.includes('lifeline') || name.includes('beyond blue')) {
+          serviceType = 'emergency';
+        } else if (name.includes('counseling') || name.includes('counselor') ||
+                   name.includes('psychologist') || name.includes('psychology')) {
+          serviceType = 'counseling';
+        } else if (name.includes('therapy') || name.includes('therapist') ||
+                   name.includes('psychiatrist') || name.includes('psychiatry')) {
+          serviceType = 'therapy';
+        } else if (name.includes('youth') || name.includes('headspace') ||
+                   name.includes('young') || name.includes('teen')) {
+          serviceType = 'youth';
+        } else if (name.includes('education') || name.includes('training') ||
+                   name.includes('workshop') || name.includes('course')) {
+          serviceType = 'education';
+        }
+
+        // 服务类型映射
+        const categoryMap = {
+          'emergency': 'Emergency Services',
+          'counseling': 'Counseling',
+          'therapy': 'Therapy',
+          'support': 'Support Groups',
+          'youth': 'Youth Services',
+          'education': 'Education'
+        };
+
+        // 获取地址信息
+        let address = place.formatted_address || place.vicinity || 'Address not available';
+
+        services.push({
+          id: place.place_id,
+          name: place.name,
+          type: serviceType,
+          category: categoryMap[serviceType] || 'Mental Health Service',
+          description: address,
+          location: {
+            lat: place.geometry.location.lat,
+            lng: place.geometry.location.lng
+          },
+          address: address,
+          phone: place.formatted_phone_number || 'Contact for details',
+          hours: 'Contact for hours',
+          rating: place.rating || 4.0,
+          services: place.types || ['Mental Health Service'],
+          website: place.website || '',
+          isEmergency: serviceType === 'emergency',
+          placeId: place.place_id
+        });
+      });
+
+      return services;
+    }
+
+    function sortServicesByDistance(services, userLat, userLng) {
+      if (!services || services.length === 0) {
+        return services;
+      }
+
+      return services
+        .map(service => ({
+          ...service,
+          distance: calculateDistance(
+            userLat,
+            userLng,
+            service.location.lat,
+            service.location.lng
+          )
+        }))
+        .sort((a, b) => a.distance - b.distance);
+    }
+
+    function isAddress(input) {
+      const addressPatterns = [
+        /\d+\s+\w+\s+(street|st|road|rd|avenue|ave|drive|dr|lane|ln|way|place|pl|court|ct|boulevard|blvd|highway|hwy)/i,
+        /\d+\s+\w+\s+(nsw|vic|qld|wa|sa|nt|act|tas)\s+\d{4}/i,
+        /^\d+\s+[a-zA-Z\s]+(street|st|road|rd|avenue|ave|drive|dr|lane|ln|way|place|pl|court|ct|boulevard|blvd|highway|hwy)/i,
+        /\b\d{4}\b/, // 包含4位邮政编码
+        /\b(nsw|vic|qld|wa|sa|nt|act|tas)\b/i // 包含州缩写
+      ];
+
+      return addressPatterns.some(pattern => pattern.test(input));
+    }
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Only POST allowed' });
+    }
+
+    try {
+      if (!GOOGLE_MAPS_API_KEY) {
+        return res.status(500).json({ error: 'Google Maps API key not configured' });
+      }
+
+      const { keyword, userLat, userLng, radius = 3000, bounds } = req.body;
+
+      if (!keyword) {
+        return res.status(400).json({ error: 'Search keyword is required' });
+      }
+
+      // Check if we have coordinates or bounds
+      if (!bounds && (typeof userLat !== 'number' || typeof userLng !== 'number')) {
+        return res.status(400).json({ error: 'Valid user coordinates or bounds are required' });
+      }
+
+      // Determine search coordinates
+      let searchLat = bounds ? (bounds.north + bounds.south) / 2 : userLat;
+      let searchLng = bounds ? (bounds.east + bounds.west) / 2 : userLng;
+      let searchLocation = null;
+
+      if (bounds) {
+        console.log('Searching within bounds:', bounds);
+      }
+
+      // 如果输入是地址，先进行地理编码
+      if (isAddress(keyword)) {
+        console.log('Detected address input, geocoding address first...');
+
+        try {
+          const geocodeResponse = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+            params: {
+              address: keyword,
+              key: GOOGLE_MAPS_API_KEY
+            }
+          });
+
+          if (geocodeResponse.data.status === 'OK' && geocodeResponse.data.results[0]) {
+            const location = geocodeResponse.data.results[0].geometry.location;
+            searchLat = location.lat;
+            searchLng = location.lng;
+            searchLocation = {
+              lat: searchLat,
+              lng: searchLng,
+              address: keyword
+            };
+            console.log(`Geocoded address "${keyword}" to: ${searchLat}, ${searchLng}`);
+          } else {
+            throw new Error('Address not found');
+          }
+        } catch (geocodeError) {
+          console.error('Geocoding error:', geocodeError);
+          return res.status(400).json({ error: 'Address not found' });
+        }
+      }
+
+      // 搜索心理健康服务
+      const allResults = [];
+
+      // 简化的搜索查询
+      const searchQueries = [
+        `${keyword} mental health`,
+        `${keyword} psychologist`,
+        `${keyword} counseling`,
+        `${keyword} therapy`,
+        `${keyword} psychiatrist`
+      ];
+
+      // 统一的API调用函数
+      const searchPlaces = async (query, type = null) => {
+        try {
+          const params = {
+            location: `${searchLat},${searchLng}`,
+            radius: radius,
+            key: GOOGLE_MAPS_API_KEY
+          };
+
+          if (type) {
+            params.type = type;
+          } else {
+            params.query = query;
+          }
+
+          const response = await axios.get(
+            type
+              ? 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+              : 'https://maps.googleapis.com/maps/api/place/textsearch/json',
+            { params }
+          );
+
+          if (response.data.status === 'OK') {
+            allResults.push(...response.data.results);
+          }
+        } catch (error) {
+          console.error(`Search error for "${query || type}":`, error);
+        }
+      };
+
+      // 执行搜索
+      await Promise.all([
+        ...searchQueries.map(query => searchPlaces(query)),
+        searchPlaces(null, 'health')
+      ]);
+
+      // 处理和去重结果
+      let processedServices = processPlacesResults(allResults);
+
+      // Filter services within bounds if provided
+      if (bounds) {
+        processedServices = processedServices.filter(service => {
+          const { lat, lng } = service.location;
+          return lat >= bounds.south && lat <= bounds.north &&
+                 lng >= bounds.west && lng <= bounds.east;
+        });
+        console.log('Filtered services within bounds:', processedServices.length);
+      }
+
+      // 按距离排序并返回结果
+      const services = sortServicesByDistance(processedServices, searchLat, searchLng);
+
+      return res.status(200).json({
+        success: true,
+        services,
+        count: services.length,
+        searchLocation,
+        searchRadius: radius,
+        bounds
+      });
+
+    } catch (error) {
+      console.error('Search services error:', error);
       return res.status(500).json({
         success: false,
         error: error.message
