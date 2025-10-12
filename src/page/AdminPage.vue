@@ -6,29 +6,27 @@
     </div>
 
     <div class="user-page-content">
-      <div class="admin-panel">
-        <!-- Loading state for auth -->
-        <div v-if="authLoading" class="loading-state">
-          <div class="spinner"></div>
-          <p>Loading...</p>
+      <!-- Loading state for auth -->
+      <div v-if="authLoading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+      </div>
+
+      <!-- Admin content -->
+      <div v-else-if="isAdminUser">
+        <!-- Action Buttons -->
+        <div class="admin-actions">
+          <EmailSender />
         </div>
 
-        <!-- Admin content -->
-        <div v-else-if="isAdminUser">
-          <!-- Action Buttons -->
-          <div class="admin-actions">
-            <EmailSender />
-          </div>
-
-          <!-- Tables Section -->
-          <TableSection
-            :strategies="strategies"
-            :users="users"
-            @update:strategies="loadStrategiesFromFirestore"
-            @update:users="loadUsersFromFirestore"
-          />
-        </div> <!-- End admin content -->
-      </div> <!-- End admin-panel -->
+        <!-- Tables Section -->
+        <TableSection
+          :strategies="strategies"
+          :users="users"
+          @update:strategies="loadStrategiesFromFirestore"
+          @update:users="loadUsersFromFirestore"
+        />
+      </div> <!-- End admin content -->
     </div>
   </div>
 </template>
