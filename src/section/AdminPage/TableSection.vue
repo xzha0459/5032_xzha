@@ -9,36 +9,54 @@
       </div>
 
       <div class="table-container">
-        <div class="strategies-table">
+        <div class="strategies-table" role="table" aria-label="Emotion Strategies Table">
         <!-- Column Headers with Sort -->
-        <div class="table-header">
-          <div class="table-cell sortable" @click="toggleSort('strategies','id')">ID <span>{{ sortIndicators.strategies.id }}</span></div>
-          <div class="table-cell sortable" @click="toggleSort('strategies','title')">Title <span>{{ sortIndicators.strategies.title }}</span></div>
-          <div class="table-cell sortable" @click="toggleSort('strategies','category')">Category <span>{{ sortIndicators.strategies.category }}</span></div>
-          <div class="table-cell">Actions</div>
+        <div class="table-header" role="row">
+          <div class="table-cell sortable" role="columnheader" tabindex="0"
+               :aria-sort="sortStates.strategies.id"
+               @click="toggleSort('strategies','id')"
+               @keydown.enter="toggleSort('strategies','id')"
+               @keydown.space.prevent="toggleSort('strategies','id')">
+            ID <span>{{ sortIndicators.strategies.id }}</span>
+          </div>
+          <div class="table-cell sortable" role="columnheader" tabindex="0"
+               :aria-sort="sortStates.strategies.title"
+               @click="toggleSort('strategies','title')"
+               @keydown.enter="toggleSort('strategies','title')"
+               @keydown.space.prevent="toggleSort('strategies','title')">
+            Title <span>{{ sortIndicators.strategies.title }}</span>
+          </div>
+          <div class="table-cell sortable" role="columnheader" tabindex="0"
+               :aria-sort="sortStates.strategies.category"
+               @click="toggleSort('strategies','category')"
+               @keydown.enter="toggleSort('strategies','category')"
+               @keydown.space.prevent="toggleSort('strategies','category')">
+            Category <span>{{ sortIndicators.strategies.category }}</span>
+          </div>
+          <div class="table-cell" role="columnheader">Actions</div>
         </div>
 
         <!-- Column Filters -->
-        <div class="table-header table-header--filters">
-          <div class="table-cell"><input v-model="strategyFilters.id" class="search" placeholder="Filter by ID" /></div>
-          <div class="table-cell"><input v-model="strategyFilters.title" class="search" placeholder="Filter by Title" /></div>
-          <div class="table-cell">
+        <div class="table-header table-header--filters" role="row">
+          <div class="table-cell" role="gridcell"><input v-model="strategyFilters.id" class="search" placeholder="Filter by ID" /></div>
+          <div class="table-cell" role="gridcell"><input v-model="strategyFilters.title" class="search" placeholder="Filter by Title" /></div>
+          <div class="table-cell" role="gridcell">
             <select v-model="strategyFilters.category" class="filter">
               <option value="">All Categories</option>
               <option v-for="c in CATEGORIES" :key="c" :value="c">{{ c }}</option>
             </select>
           </div>
-          <div class="table-cell">
+          <div class="table-cell" role="gridcell">
             <button class="btn action primary" @click="openStrategyModal()">Add Strategy</button>
           </div>
         </div>
 
         <!-- Table Rows -->
-        <div v-for="row in pagedStrategies" :key="row.id" class="table-row">
-          <div class="table-cell">{{ row.id }}</div>
-          <div class="table-cell">{{ row.title }}</div>
-          <div class="table-cell">{{ row.category }}</div>
-          <div class="table-cell">
+        <div v-for="row in pagedStrategies" :key="row.id" class="table-row" role="row">
+          <div class="table-cell" role="gridcell">{{ row.id }}</div>
+          <div class="table-cell" role="gridcell">{{ row.title }}</div>
+          <div class="table-cell" role="gridcell">{{ row.category }}</div>
+          <div class="table-cell" role="gridcell">
             <button class="btn action" @click="openStrategyModal(row)">Edit</button>
             <button class="btn action danger" @click="deleteStrategy(row)">Delete</button>
           </div>
@@ -65,35 +83,59 @@
       </div>
 
       <div class="table-container">
-        <div class="users-table">
+        <div class="users-table" role="table" aria-label="Users Management Table">
         <!-- Column Headers with Sort -->
-        <div class="table-header">
-          <div class="table-cell sortable" @click="toggleSort('users','username')">Username <span>{{ sortIndicators.users.username }}</span></div>
-          <div class="table-cell sortable" @click="toggleSort('users','email')">Email <span>{{ sortIndicators.users.email }}</span></div>
-          <div class="table-cell sortable" @click="toggleSort('users','role')">Role <span>{{ sortIndicators.users.role }}</span></div>
-          <div class="table-cell sortable" @click="toggleSort('users','createdAt')">Created At <span>{{ sortIndicators.users.createdAt }}</span></div>
+        <div class="table-header" role="row">
+          <div class="table-cell sortable" role="columnheader" tabindex="0"
+               :aria-sort="sortStates.users.username"
+               @click="toggleSort('users','username')"
+               @keydown.enter="toggleSort('users','username')"
+               @keydown.space.prevent="toggleSort('users','username')">
+            Username <span>{{ sortIndicators.users.username }}</span>
+          </div>
+          <div class="table-cell sortable" role="columnheader" tabindex="0"
+               :aria-sort="sortStates.users.email"
+               @click="toggleSort('users','email')"
+               @keydown.enter="toggleSort('users','email')"
+               @keydown.space.prevent="toggleSort('users','email')">
+            Email <span>{{ sortIndicators.users.email }}</span>
+          </div>
+          <div class="table-cell sortable" role="columnheader" tabindex="0"
+               :aria-sort="sortStates.users.role"
+               @click="toggleSort('users','role')"
+               @keydown.enter="toggleSort('users','role')"
+               @keydown.space.prevent="toggleSort('users','role')">
+            Role <span>{{ sortIndicators.users.role }}</span>
+          </div>
+          <div class="table-cell sortable" role="columnheader" tabindex="0"
+               :aria-sort="sortStates.users.createdAt"
+               @click="toggleSort('users','createdAt')"
+               @keydown.enter="toggleSort('users','createdAt')"
+               @keydown.space.prevent="toggleSort('users','createdAt')">
+            Created At <span>{{ sortIndicators.users.createdAt }}</span>
+          </div>
         </div>
 
         <!-- Column Filters -->
-        <div class="table-header table-header--filters">
-          <div class="table-cell"><input v-model="usersFilters.username" class="search" placeholder="Filter by Username" /></div>
-          <div class="table-cell"><input v-model="usersFilters.email" class="search" placeholder="Filter by Email" /></div>
-          <div class="table-cell">
+        <div class="table-header table-header--filters" role="row">
+          <div class="table-cell" role="gridcell"><input v-model="usersFilters.username" class="search" placeholder="Filter by Username" /></div>
+          <div class="table-cell" role="gridcell"><input v-model="usersFilters.email" class="search" placeholder="Filter by Email" /></div>
+          <div class="table-cell" role="gridcell">
             <select v-model="usersFilters.role" class="filter">
               <option value="">All Roles</option>
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
           </div>
-          <div class="table-cell"><input v-model="usersFilters.createdAt" class="search" placeholder="Filter by Date (YYYY-MM-DD)" /></div>
+          <div class="table-cell" role="gridcell"><input v-model="usersFilters.createdAt" class="search" placeholder="Filter by Date (YYYY-MM-DD)" /></div>
         </div>
 
         <!-- Table Rows -->
-        <div v-for="row in pagedUsers" :key="row.id" class="table-row">
-          <div class="table-cell">{{ row.username || 'Unknown' }}</div>
-          <div class="table-cell">{{ row.email || 'N/A' }}</div>
-          <div class="table-cell">{{ row.role || 'user' }}</div>
-          <div class="table-cell">{{ formatDate(row.createdAt) }}</div>
+        <div v-for="row in pagedUsers" :key="row.id" class="table-row" role="row">
+          <div class="table-cell" role="gridcell">{{ row.username || 'Unknown' }}</div>
+          <div class="table-cell" role="gridcell">{{ row.email || 'N/A' }}</div>
+          <div class="table-cell" role="gridcell">{{ row.role || 'user' }}</div>
+          <div class="table-cell" role="gridcell">{{ formatDate(row.createdAt) }}</div>
         </div>
 
         </div>
@@ -108,11 +150,12 @@
     </div>
 
     <!-- Strategy Modal -->
-    <div v-if="showStrategyModal" class="modal-overlay">
-      <div class="modal">
+    <div v-if="showStrategyModal" class="modal-overlay" role="presentation">
+      <div class="modal" role="dialog" aria-modal="true" :aria-labelledby="'admin-strategy-modal-title'"
+           ref="adminStrategyModal" @keydown="handleAdminModalKeydown">
         <div class="modal-header">
-          <h3 class="modal-title">{{ editingStrategy ? 'Edit Strategy' : 'Add Strategy' }}</h3>
-          <button class="close-button" @click="showStrategyModal=false">×</button>
+          <h3 class="modal-title" :id="'admin-strategy-modal-title'">{{ editingStrategy ? 'Edit Strategy' : 'Add Strategy' }}</h3>
+          <button class="close-button" ref="adminModalCloseBtn" @click="showStrategyModal=false" aria-label="Close modal">×</button>
         </div>
 
         <div class="modal-body">
@@ -135,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { setDoc, doc, deleteDoc } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 
@@ -180,6 +223,9 @@ const usersPage = ref(1)
 const showStrategyModal = ref(false)
 const editingStrategy = ref(null)
 const strategyForm = ref({ id: '', title: '', category: '', description: '', tags: '', tips: '' })
+const adminStrategyModal = ref(null)
+const adminModalCloseBtn = ref(null)
+let lastFocusedBeforeAdminModal = null
 
 // Helper functions
 const formatDate = (dateString) => {
@@ -210,6 +256,26 @@ const sortIndicators = computed(() => ({
     createdAt: indicator('users','createdAt')
   }
 }))
+
+const sortStates = computed(() => ({
+  strategies: {
+    title: getSortState('strategies','title'),
+    category: getSortState('strategies','category'),
+    id: getSortState('strategies','id')
+  },
+  users: {
+    username: getSortState('users','username'),
+    email: getSortState('users','email'),
+    role: getSortState('users','role'),
+    createdAt: getSortState('users','createdAt')
+  }
+}))
+
+const getSortState = (table, key) => {
+  const state = table === 'strategies' ? strategySort : usersSort
+  if (state.value.key !== key) return 'none'
+  return state.value.dir === 'asc' ? 'ascending' : 'descending'
+}
 
 function indicator(table, key) {
   const state = table === 'strategies' ? strategySort.value : usersSort.value
@@ -297,6 +363,13 @@ const openStrategyModal = (row) => {
         tips: ''
       }
   showStrategyModal.value = true
+  // 记录触发元素并将焦点移入模态
+  lastFocusedBeforeAdminModal = document.activeElement
+  nextTick(() => {
+    if (adminModalCloseBtn.value && adminModalCloseBtn.value.focus) {
+      adminModalCloseBtn.value.focus()
+    }
+  })
 }
 
 // CRUD Operations
@@ -321,6 +394,10 @@ const submitStrategy = async () => {
     console.error('Failed to save strategy to Firestore:', error)
   }
   showStrategyModal.value = false
+  // 关闭后还原焦点
+  if (lastFocusedBeforeAdminModal && lastFocusedBeforeAdminModal.focus) {
+    lastFocusedBeforeAdminModal.focus()
+  }
 }
 
 const deleteStrategy = async (row) => {
@@ -329,6 +406,29 @@ const deleteStrategy = async (row) => {
     emit('update:strategies')
   } catch (error) {
     console.error('Failed to delete strategy from Firestore:', error)
+  }
+}
+
+// 焦点陷阱 & Esc 关闭
+const handleAdminModalKeydown = (e) => {
+  if (e.key === 'Escape') {
+    showStrategyModal.value = false
+    return
+  }
+  if (e.key !== 'Tab') return
+  const modal = adminStrategyModal.value
+  if (!modal) return
+  const focusable = modal.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])')
+  if (!focusable.length) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  const active = document.activeElement
+  if (e.shiftKey && active === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && active === last) {
+    e.preventDefault();
+    first.focus();
   }
 }
 </script>

@@ -80,11 +80,13 @@
           </div>
         </div>
 
-        <div class="modal-overlay" v-if="hasSelectedStrategy()" @click="closeModal">
-          <div class="modal" @click.stop>
+        <div class="modal-overlay" v-if="hasSelectedStrategy()" @click="closeModal" role="presentation">
+          <div class="modal" @click.stop ref="strategyModal"
+               role="dialog" aria-modal="true" :aria-labelledby="'strategy-modal-title'"
+               @keydown="handleModalKeydown">
             <div class="modal-header">
-              <h2 class="modal-title">{{ selectedStrategy.title }}</h2>
-              <button class="close-button" @click="closeModal">×</button>
+              <h2 class="modal-title" :id="'strategy-modal-title'">{{ selectedStrategy.title }}</h2>
+              <button class="close-button" ref="strategyCloseBtn" @click="closeModal" aria-label="Close modal">×</button>
             </div>
 
             <div class="modal-body">
@@ -180,7 +182,8 @@ export default {
       strategies: [],
       userRatings: {},
       aggregateRatings: {},
-      selectedStrategy: null
+      selectedStrategy: null,
+      lastFocusedBeforeModal: null
     }
   },
 
@@ -407,15 +410,51 @@ export default {
     },
 
     selectStrategy(strategy) {
+      // 记录触发元素以便关闭后还原焦点
+      this.lastFocusedBeforeModal = document.activeElement
       this.selectedStrategy = strategy
+      this.$nextTick(() => {
+        // 将焦点移到关闭按钮
+        const btn = this.$refs.strategyCloseBtn
+        if (btn && btn.focus) btn.focus()
+      })
     },
 
     closeModal() {
       this.selectedStrategy = null
+      // 关闭后把焦点还原到触发元素
+      if (this.lastFocusedBeforeModal && this.lastFocusedBeforeModal.focus) {
+        this.lastFocusedBeforeModal.focus()
+      }
     },
 
     hasSelectedStrategy() {
       return this.selectedStrategy !== null
+    },
+
+    // 焦点陷阱与ESC
+    handleModalKeydown(e) {
+      if (e.key === 'Escape') {
+        this.closeModal()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const modal = this.$refs.strategyModal
+      if (!modal) return
+      const focusable = modal.querySelectorAll(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+      )
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
   }
 }

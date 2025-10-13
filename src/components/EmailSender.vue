@@ -1,16 +1,18 @@
 <template>
   <div>
     <!-- Email Button -->
-    <button class="btn primary" @click="showModal = true">
+    <button class="btn primary" @click="openEmailModal" ref="emailOpenBtn">
       Send Email
     </button>
 
     <!-- Email Modal -->
-    <div v-if="showModal" class="modal-overlay" @click="showModal = false">
-      <div class="modal" @click.stop>
+    <div v-if="showModal" class="modal-overlay" role="presentation" @click="closeEmailModal">
+      <div class="modal" @click.stop ref="emailModal"
+           role="dialog" aria-modal="true" aria-labelledby="email-modal-title"
+           @keydown="handleEmailModalKeydown">
         <div class="modal-header">
-          <h2 class="modal-title">Send Email</h2>
-          <button class="close-button" @click="showModal = false">×</button>
+          <h2 class="modal-title" id="email-modal-title">Send Email</h2>
+          <button class="close-button" ref="emailCloseBtn" @click="closeEmailModal" aria-label="Close modal">×</button>
         </div>
 
         <div class="modal-body">
@@ -75,12 +77,54 @@
 </template>
 
 <script>
-import { reactive, ref } from 'vue'
+import { reactive, ref, nextTick } from 'vue'
 
 export default {
   name: 'EmailSender',
   setup() {
     const showModal = ref(false)
+    const emailModal = ref(null)
+    const emailCloseBtn = ref(null)
+    const emailOpenBtn = ref(null)
+    let lastFocusedBeforeEmailModal = null
+    const openEmailModal = () => {
+      lastFocusedBeforeEmailModal = document.activeElement
+      showModal.value = true
+      nextTick(() => {
+        if (emailCloseBtn.value && emailCloseBtn.value.focus) emailCloseBtn.value.focus()
+      })
+    }
+
+    const closeEmailModal = () => {
+      showModal.value = false
+      if (lastFocusedBeforeEmailModal && lastFocusedBeforeEmailModal.focus) {
+        lastFocusedBeforeEmailModal.focus()
+      } else if (emailOpenBtn.value && emailOpenBtn.value.focus) {
+        emailOpenBtn.value.focus()
+      }
+    }
+
+    const handleEmailModalKeydown = (e) => {
+      if (e.key === 'Escape') {
+        closeEmailModal()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const modal = emailModal.value
+      if (!modal) return
+      const focusable = modal.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])')
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
     const isLoading = ref(false)
     const error = ref(null)
     const success = ref(false)
@@ -174,10 +218,16 @@ export default {
 
     return {
       showModal,
+      emailModal,
+      emailCloseBtn,
+      emailOpenBtn,
       form,
       isLoading,
       error,
       success,
+      openEmailModal,
+      closeEmailModal,
+      handleEmailModalKeydown,
       handleFileUpload,
       handleSubmit
     }

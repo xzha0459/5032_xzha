@@ -13,11 +13,16 @@ const showNavigationBar = computed(() => {
 
 <template>
   <div id="app">
+    <!-- Skip Link for pages without navigation -->
+    <a v-if="!showNavigationBar" href="#main-content" class="skip-link" tabindex="1">Skip to main content</a>
+
     <!-- 导航栏条件显示 -->
     <NavigationBar v-if="showNavigationBar" />
 
     <!-- Router View - 显示当前路由的页面 -->
-    <router-view />
+    <main id="main-content" role="main">
+      <router-view />
+    </main>
   </div>
 </template>
 
@@ -25,5 +30,10 @@ const showNavigationBar = computed(() => {
 #app {
   width: 100%;
   min-height: 100vh;
+}
+
+/* Main content landmark */
+main {
+  outline: none;
 }
 </style>

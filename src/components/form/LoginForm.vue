@@ -2,7 +2,7 @@
   <div class="auth-form">
     <h2 class="form-title">Sign In</h2>
 
-    <form @submit.prevent="submitForm">
+    <form @submit.prevent="submitForm" :aria-busy="isSubmitting ? 'true' : 'false'">
       <!-- Email Field -->
       <div class="form-group">
         <label for="email">Email *</label>
@@ -14,8 +14,10 @@
           placeholder="Enter your email address"
           class="input"
           :class="{ error: emailError, valid: form.email && !emailError }"
+          :aria-invalid="!!emailError"
+          :aria-describedby="emailError ? 'email-error' : null"
         />
-        <span v-if="emailError" class="error-msg">{{ emailError }}</span>
+        <span v-if="emailError" id="email-error" class="error-msg" role="alert">{{ emailError }}</span>
       </div>
 
       <!-- Password Field -->
@@ -29,8 +31,10 @@
           placeholder="Enter your password"
           class="input"
           :class="{ error: passwordError, valid: form.password && !passwordError }"
+          :aria-invalid="!!passwordError"
+          :aria-describedby="passwordError ? 'password-error' : null"
         />
-        <span v-if="passwordError" class="error-msg">{{ passwordError }}</span>
+        <span v-if="passwordError" id="password-error" class="error-msg" role="alert">{{ passwordError }}</span>
       </div>
 
       <!-- Submit Button -->
@@ -39,7 +43,7 @@
       </button>
 
       <!-- Form Errors -->
-      <div v-if="formErrors.length" class="alert alert-danger">
+      <div v-if="formErrors.length" class="alert alert-danger" role="alert" aria-live="assertive">
         <h6 class="alert-heading">Please fix:</h6>
         <ul class="error-list">
           <li v-for="error in formErrors" :key="error">{{ error }}</li>
@@ -47,8 +51,8 @@
       </div>
 
       <!-- Success Message -->
-      <div v-if="success" class="alert alert-success success-message">
-        ✅ Successfully signed in!
+      <div v-if="success" class="alert alert-success success-message" role="status" aria-live="polite">
+        Successfully signed in!
       </div>
     </form>
 

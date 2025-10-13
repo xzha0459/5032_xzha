@@ -1,6 +1,9 @@
 <template>
   <nav class="navbar">
     <div class="nav-container">
+      <!-- Skip Link for keyboard navigation -->
+      <a href="#main-content" class="skip-link" tabindex="1">Skip to main content</a>
+
       <!-- Logo/Brand -->
       <div class="nav-brand" @click="goToHome">MindU</div>
 
@@ -9,6 +12,8 @@
         class="mobile-menu-btn"
         @click="toggleMobileMenu"
         :class="{ 'active': isMobileMenuOpen }"
+        :aria-expanded="isMobileMenuOpen ? 'true' : 'false'"
+        aria-controls="primary-mobile-nav"
         aria-label="Toggle mobile menu"
       >
         <span class="hamburger-line"></span>
@@ -34,17 +39,19 @@
         <!-- Logged in - show user dropdown -->
         <template v-else>
           <div class="user-dropdown" ref="dropdownRef">
-            <button @click="toggleDropdown" class="nav-link btn-user">
+            <button @click="toggleDropdown" class="nav-link btn-user"
+                    :aria-expanded="isDropdownOpen ? 'true' : 'false'"
+                    aria-controls="user-menu">
               <span class="user-avatar">{{ userInitial }}</span>
               <span class="user-name" v-text="userDisplayName"></span>
               <span class="dropdown-arrow" :class="{ 'open': isDropdownOpen }"></span>
             </button>
 
-            <div v-if="isDropdownOpen" class="dropdown-menu">
-              <button v-if="isAdminUser" @click="goToAdmin" class="dropdown-item">
+            <div v-if="isDropdownOpen" id="user-menu" class="dropdown-menu" role="menu">
+              <button v-if="isAdminUser" @click="goToAdmin" class="dropdown-item" role="menuitem" ref="firstMenuItem">
                 Admin Panel
               </button>
-              <button @click="logout" class="dropdown-item logout-item">
+              <button @click="logout" class="dropdown-item logout-item" role="menuitem" ref="lastMenuItem">
                 Logout
               </button>
             </div>
@@ -57,7 +64,7 @@
     <div v-if="isMobileMenuOpen" class="mobile-menu-backdrop" @click="closeMobileMenu"></div>
 
     <!-- Mobile Navigation Menu -->
-    <div class="mobile-nav" :class="{ 'open': isMobileMenuOpen }">
+    <div id="primary-mobile-nav" class="mobile-nav" :class="{ 'open': isMobileMenuOpen }" role="navigation">
       <div class="mobile-nav-content">
         <!-- Navigation Links -->
         <div class="mobile-nav-section">
@@ -131,6 +138,8 @@ const { user, userProfile, userRole, isAdminUser, logout: authLogout } = useAuth
 // Local state for dropdown
 const isDropdownOpen = ref(false)
 const dropdownRef = ref(null)
+const firstMenuItem = ref(null)
+const lastMenuItem = ref(null)
 
 // Mobile menu state
 const isMobileMenuOpen = ref(false)
@@ -191,6 +200,10 @@ const goToAdmin = () => {
 // Dropdown methods
 const toggleDropdown = () => {
   isDropdownOpen.value = !isDropdownOpen.value
+  if (isDropdownOpen.value) {
+    // 将焦点移入第一个菜单项
+    setTimeout(() => firstMenuItem.value && firstMenuItem.value.focus(), 0)
+  }
 }
 
 const closeDropdown = () => {
@@ -217,6 +230,34 @@ const closeMobileMenu = () => {
   console.log('closeMobileMenu called')
   isMobileMenuOpen.value = false
   document.body.style.overflow = ''
+}
+
+// Global key handling for Esc and dropdown arrow navigation
+const onKeydown = (e) => {
+  if (e.key === 'Escape') {
+    closeDropdown()
+    closeMobileMenu()
+  }
+  if (isDropdownOpen.value && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    const first = firstMenuItem.value
+    const last = lastMenuItem.value
+    if (!first || !last) return
+    const active = document.activeElement
+    if (e.key === 'ArrowDown') {
+      if (active === last) {
+        first.focus()
+      } else {
+        last.focus()
+      }
+    } else if (e.key === 'ArrowUp') {
+      if (active === first) {
+        last.focus()
+      } else {
+        first.focus()
+      }
+    }
+    e.preventDefault()
+  }
 }
 
 // Logout method
@@ -268,6 +309,7 @@ onMounted(() => {
   // Add click outside listener
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('click', handleMobileMenuClickOutside)
+  document.addEventListener('keydown', onKeydown)
 
   // Cleanup function
   onUnmounted(() => {
@@ -276,6 +318,7 @@ onMounted(() => {
 
     document.removeEventListener('click', handleClickOutside)
     document.removeEventListener('click', handleMobileMenuClickOutside)
+    document.removeEventListener('keydown', onKeydown)
   })
 })
 </script>
