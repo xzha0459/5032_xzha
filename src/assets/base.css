@@ -76,12 +76,12 @@ body {
 }
 
 /* Typography Styles */
-h1 { font-size: 2.5rem; }
-h2 { font-size: 2rem; }
-h3 { font-size: 1.5rem; }
-h4 { font-size: 1.25rem; }
-h5 { font-size: 1rem; }
-h6 { font-size: 0.8rem; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1rem; }
+h4 { font-size: 0.8rem; }
+h5 { font-size: 0.6rem; }
+h6 { font-size: 0.4rem; }
 
 .lead { font-size: 1.25rem; font-weight: 300; }
 .small { font-size: 0.875rem; }
@@ -502,11 +502,23 @@ textarea.input {
 }
 
 .modal-body {
-  padding: 1rem 1rem 0 1rem;
+  padding: 1rem 0 0 0;
+
+}
+
+.modal-body p {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0.5rem 0;
 }
 
 .modal-group {
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .modal-description {
@@ -626,6 +638,19 @@ textarea.input {
   padding-right: 3rem;
 }
 
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
 .search {
   border-radius: 25px;
   width: 100%;
@@ -708,13 +733,13 @@ textarea.input {
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
   border-top: 1px solid var(--border-light);
-  background: #f8f9fa;
+  background: transparent;
   width: 100%;
   box-sizing: border-box;
 }
 
 .page-info {
-  color: #6c757d;
+  color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 500;
   margin: 0 1rem;

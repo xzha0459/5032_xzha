@@ -159,7 +159,8 @@
         </div>
 
         <div class="modal-body">
-          <input v-model="strategyForm.id" class="input" placeholder="ID (auto if empty)" />
+          <div class="modal-group">
+            <input v-model="strategyForm.id" class="input" placeholder="ID (auto if empty)" />
           <input v-model="strategyForm.title" class="input" placeholder="Title" />
           <select v-model="strategyForm.category" class="input">
             <option v-for="c in CATEGORIES" :key="c" :value="c">{{ c }}</option>
@@ -167,6 +168,8 @@
           <input v-model="strategyForm.tags" class="input" placeholder="Tags (comma separated)" />
           <input v-model="strategyForm.description" class="input" placeholder="Description" />
           <textarea v-model="strategyForm.tips" class="input" placeholder="Tips: one per line, format Title::Description"></textarea>
+          </div>
+
         </div>
 
         <div class="modal-footer">

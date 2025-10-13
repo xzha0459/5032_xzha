@@ -60,8 +60,8 @@
               </p>
             </div>
             <div class="card-footer">
-              <button class="btn secondary" @click.stop="navigateToService(service)">Directions</button>
-              <button class="btn secondary" @click.stop="viewInGoogleMaps(service)">Google Maps</button>
+              <button class="btn secondary" @click.stop="navigateToService(service)">Get Directions</button>
+              <button class="btn secondary" @click.stop="viewInGoogleMaps(service)">View in Google Maps</button>
             </div>
           </div>
         </div>

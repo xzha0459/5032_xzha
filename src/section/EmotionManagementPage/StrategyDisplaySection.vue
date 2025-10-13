@@ -42,12 +42,20 @@
             <option value="low-to-high">Low to High</option>
           </select>
         </div>
+
+        <!-- Export Button -->
+        <div class="export-button-group">
+          <WellbeingExportModal
+            :strategies="strategies"
+            :aggregate-ratings="aggregateRatings"
+          />
+        </div>
       </div>
 
       <div class="strategies-section">
-        <div class="strategies-grid" v-if="filteredStrategies.length > 0">
+        <div class="strategies-grid" v-if="paginatedStrategies.length > 0">
           <div
-            v-for="strategy in filteredStrategies"
+            v-for="strategy in paginatedStrategies"
             :key="strategy.id"
             class="card"
             @click="selectStrategy(strategy)"
@@ -78,6 +86,13 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" v-if="totalPages > 1">
+          <button class="btn action" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="btn action" :disabled="currentPage === totalPages" @click="currentPage++">Next</button>
         </div>
 
         <div class="modal-overlay" v-if="hasSelectedStrategy()" @click="closeModal" role="presentation">
@@ -166,9 +181,13 @@ import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase
 import { db } from '@/firebase.js'
 import { useAuth } from '@/utils/useAuth.js'
 import { isAdmin } from '@/utils/permissions.js'
+import WellbeingExportModal from '@/components/WellbeingExportModal.vue'
 
 export default {
   name: 'StrategyDisplaySection',
+  components: {
+    WellbeingExportModal
+  },
   setup() {
     const { user, isAuthenticated, userRole } = useAuth()
     return { user, isAuthenticated, userRole }
@@ -183,7 +202,9 @@ export default {
       userRatings: {},
       aggregateRatings: {},
       selectedStrategy: null,
-      lastFocusedBeforeModal: null
+      lastFocusedBeforeModal: null,
+      currentPage: 1,
+      itemsPerPage: 9
     }
   },
 
@@ -207,6 +228,17 @@ export default {
         }
       },
       immediate: true
+    },
+
+    // Reset page when filters change
+    searchQuery() {
+      this.currentPage = 1
+    },
+    selectedMainCategory() {
+      this.currentPage = 1
+    },
+    ratingSortOrder() {
+      this.currentPage = 1
     }
   },
 
@@ -252,6 +284,17 @@ export default {
       }
 
       return filtered
+    },
+
+    // Pagination computed properties
+    totalPages() {
+      return Math.ceil(this.filteredStrategies.length / this.itemsPerPage)
+    },
+
+    paginatedStrategies() {
+      const startIndex = (this.currentPage - 1) * this.itemsPerPage
+      const endIndex = startIndex + this.itemsPerPage
+      return this.filteredStrategies.slice(startIndex, endIndex)
     }
   },
 
@@ -479,19 +522,10 @@ export default {
   flex-wrap: wrap;
 }
 
-.filter-group {
+.export-button-group {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
 }
-
-.filter-label {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
 
 /* Strategy Area Styles */
 .strategies-section {
@@ -502,7 +536,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 /* Modal styles */
