@@ -21,11 +21,11 @@
           >
             <option value="all">All Strategies</option>
             <option
-              v-for="category in mainCategories"
-              :key="category.id"
-              :value="category.id"
+              v-for="category in uniqueCategories"
+              :key="category"
+              :value="category"
             >
-              {{ category.name }}
+              {{ category }}
             </option>
           </select>
         </div>
@@ -63,6 +63,9 @@
 
             <div class="card-header">
               <h2 class="card-title">{{ strategy.title }}</h2>
+            </div>
+
+            <div class="card-body">
               <span
                 v-for="tag in strategy.tags"
                 :key="tag"
@@ -70,9 +73,6 @@
               >
                 {{ tag }}
               </span>
-            </div>
-
-            <div class="card-body">
               <p>{{ strategy.description }}</p>
             </div>
 
@@ -176,7 +176,6 @@
 </template>
 
 <script>
-import { mainCategories } from '@/data/emotionStrategies.js'
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 import { useAuth } from '@/utils/useAuth.js'
@@ -197,7 +196,6 @@ export default {
       searchQuery: '',
       selectedMainCategory: 'all',
       ratingSortOrder: 'none',
-      mainCategories,
       strategies: [],
       userRatings: {},
       aggregateRatings: {},
@@ -246,6 +244,12 @@ export default {
     // Check if user is admin
     isAdminUser() {
       return isAdmin(this.userRole)
+    },
+
+    // Get unique categories from strategies
+    uniqueCategories() {
+      const categories = this.strategies.map(strategy => strategy.category)
+      return [...new Set(categories)].sort()
     },
 
     filteredStrategies() {
@@ -302,18 +306,15 @@ export default {
     async loadStrategies() {
       try {
         const snapshot = await getDocs(collection(db, 'strategies'))
-        const nameToId = Object.fromEntries(mainCategories.map(c => [c.name, c.id]))
         const docs = snapshot.docs.map(d => {
           const data = d.data()
-          const categoryNameOrId = data.category
-          const categoryId = nameToId[categoryNameOrId] || categoryNameOrId
           return {
             id: data.id || d.id,
             title: data.title,
             description: data.description || '',
             tags: data.tags || [],
             tips: data.tips || [],
-            category: categoryId
+            category: data.category
           }
         })
         this.strategies = docs

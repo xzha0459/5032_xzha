@@ -26,11 +26,11 @@
               >
                 <option value="all">All Categories</option>
                 <option
-                  v-for="category in mainCategories"
-                  :key="category.id"
-                  :value="category.id"
+                  v-for="category in uniqueCategories"
+                  :key="category"
+                  :value="category"
                 >
-                  {{ category.name }}
+                  {{ category }}
                 </option>
               </select>
             </div>
@@ -78,8 +78,7 @@
 
 <script>
 import { reactive, ref, computed, nextTick } from 'vue'
-import { exportStrategiesToCSV, generateFilename, getCategoryName } from '@/utils/csvExport.js'
-import { mainCategories } from '@/data/emotionStrategies.js'
+import { exportStrategiesToCSV, generateFilename } from '@/utils/csvExport.js'
 
 export default {
   name: 'WellbeingExportModal',
@@ -159,11 +158,18 @@ export default {
     })
 
     const selectedCategoryName = computed(() => {
-      return getCategoryName(exportOptions.category, mainCategories)
+      if (exportOptions.category === 'all') return 'All Categories'
+      return exportOptions.category
     })
 
     const generatedFilename = computed(() => {
       return generateFilename('wellbeing_strategies', exportOptions.category)
+    })
+
+    // Get unique categories from strategies
+    const uniqueCategories = computed(() => {
+      const categories = props.strategies.map(strategy => strategy.category)
+      return [...new Set(categories)].sort()
     })
 
     const handleExport = async () => {
@@ -210,7 +216,7 @@ export default {
       isExporting,
       message,
       messageType,
-      mainCategories,
+      uniqueCategories,
       filteredStrategiesCount,
       selectedCategoryName,
       generatedFilename,

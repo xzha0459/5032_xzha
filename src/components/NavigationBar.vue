@@ -26,6 +26,7 @@
         <button @click="goToHome" class="nav-link">Home</button>
         <button @click="goToWellbeing" class="nav-link">Wellbeing</button>
         <button @click="goToMap" class="nav-link">Find Support</button>
+        <button v-if="user" @click="goToCommunity" class="nav-link">Community</button>
       </div>
 
       <!-- Desktop Right side content -->
@@ -48,6 +49,9 @@
             </button>
 
             <div v-if="isDropdownOpen" id="user-menu" class="dropdown-menu" role="menu">
+              <button v-if="isRegularUser" @click="goToUserCenter" class="dropdown-item" role="menuitem" ref="firstMenuItem">
+                User Center
+              </button>
               <button v-if="isAdminUser" @click="goToAdmin" class="dropdown-item" role="menuitem" ref="firstMenuItem">
                 Admin Panel
               </button>
@@ -83,6 +87,11 @@
                   :class="{ 'active': isCurrentRoute('Map') }">
             Find Support
           </button>
+          <button v-if="user" @click="() => { goToCommunity(); closeMobileMenu(); }"
+                  class="mobile-nav-link"
+                  :class="{ 'active': isCurrentRoute('Community') }">
+            Community
+          </button>
         </div>
 
         <!-- User Section -->
@@ -106,6 +115,12 @@
                 <div class="mobile-user-email">{{ user?.email }}</div>
               </div>
             </div>
+
+            <button v-if="isRegularUser" @click="() => { goToUserCenter(); closeMobileMenu(); }"
+                    class="mobile-nav-link"
+                    :class="{ 'active': isCurrentRoute('UserCenter') }">
+              User Center
+            </button>
 
             <button v-if="isAdminUser" @click="() => { goToAdmin(); closeMobileMenu(); }"
                     class="mobile-nav-link"
@@ -133,7 +148,7 @@ const router = useRouter()
 const route = useRoute()
 
 // Use the auth composable
-const { user, userProfile, userRole, isAdminUser, logout: authLogout } = useAuth()
+const { user, userProfile, userRole, isAdminUser, isRegularUser, logout: authLogout } = useAuth()
 
 // Local state for dropdown
 const isDropdownOpen = ref(false)
@@ -189,6 +204,16 @@ const goToWellbeing = () => {
 const goToMap = () => {
   console.log('goToMap clicked')
   router.push('/map')
+}
+
+const goToCommunity = () => {
+  console.log('goToCommunity clicked')
+  router.push('/community')
+}
+
+const goToUserCenter = () => {
+  console.log('goToUserCenter clicked')
+  router.push('/user-center')
 }
 
 const goToAdmin = () => {
