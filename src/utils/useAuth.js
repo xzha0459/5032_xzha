@@ -38,7 +38,6 @@ const fetchUserProfile = async (uid) => {
     if (userDoc.exists()) {
       userProfile.value = userDoc.data()
     } else {
-      console.log('No user profile found in Firestore')
       userProfile.value = null
     }
   } catch (error) {
@@ -61,19 +60,22 @@ const logout = async () => {
 
 // Initialize auth state listener
 const initializeAuth = () => {
-  // Set loading to true initially
   isLoading.value = true
 
   const unsubscribe = onAuthStateChanged(auth, async (userData) => {
-    user.value = userData
-    if (userData) {
-      // User is logged in, fetch profile from Firestore
-      await fetchUserProfile(userData.uid)
-    } else {
-      // User is logged out, clear profile
+    try {
+      user.value = userData
+      if (userData) {
+        await fetchUserProfile(userData.uid)
+      } else {
+        userProfile.value = null
+      }
+    } catch (error) {
+      console.error('Error in auth state change:', error)
       userProfile.value = null
+    } finally {
+      isLoading.value = false
     }
-    isLoading.value = false
   })
 
   return unsubscribe

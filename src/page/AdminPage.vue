@@ -23,8 +23,10 @@
         <TableSection
           :strategies="strategies"
           :users="users"
+          :activities="activities"
           @update:strategies="loadStrategiesFromFirestore"
           @update:users="loadUsersFromFirestore"
+          @update:activities="loadActivitiesFromFirestore"
         />
       </div> <!-- End admin content -->
     </div>
@@ -49,6 +51,7 @@ const router = useRouter()
 // State
 const strategies = ref([])
 const users = ref([])
+const activities = ref([])
 
 // Methods
 const loadStrategiesFromFirestore = async () => {
@@ -73,6 +76,16 @@ const loadUsersFromFirestore = async () => {
   }
 }
 
+const loadActivitiesFromFirestore = async () => {
+  try {
+    const snap = await getDocs(collection(db, 'activities'))
+    activities.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (e) {
+    console.error('Failed to load activities:', e)
+    activities.value = []
+  }
+}
+
 // Watch for auth changes and redirect if not admin
 watch([authLoading, isAdminUser], ([loading, isAdmin]) => {
   if (!loading && !isAdmin) {
@@ -85,6 +98,7 @@ watch([authLoading, isAdminUser], ([loading, isAdmin]) => {
 onMounted(() => {
   loadStrategiesFromFirestore()
   loadUsersFromFirestore()
+  loadActivitiesFromFirestore()
 })
 </script>
 

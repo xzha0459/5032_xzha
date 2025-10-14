@@ -201,17 +201,23 @@ const getTypeLabel = (type) => {
 }
 
 const getStatusClass = (activity) => {
-  if (activity.status !== 'active') return 'cancelled'
+  const now = new Date()
+  const activityDate = new Date(activity.date)
+
+  if (activity.status === 'cancelled') return 'cancelled'
+  if (activityDate < now) return 'past'
   if (activity.currentParticipants >= activity.maxParticipants) return 'full'
-  if (activity.date < new Date()) return 'past'
-  return 'available'
+  return 'active'
 }
 
 const getStatusText = (activity) => {
-  if (activity.status !== 'active') return 'Cancelled'
+  const now = new Date()
+  const activityDate = new Date(activity.date)
+
+  if (activity.status === 'cancelled') return 'Cancelled'
+  if (activityDate < now) return 'Past'
   if (activity.currentParticipants >= activity.maxParticipants) return 'Full'
-  if (activity.date < new Date()) return 'Past'
-  return 'Available'
+  return 'Active'
 }
 
 const canBookActivity = (activity) => {
@@ -254,8 +260,7 @@ const bookActivity = (activity) => {
 }
 
 const viewDetails = (activity) => {
-  // TODO: Implement activity details modal
-  console.log('View details for:', activity)
+  emit('activity-selected', activity)
 }
 </script>
 

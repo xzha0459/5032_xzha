@@ -30,11 +30,7 @@
         </div>
 
         <!-- My Bookings Section -->
-        <MyBookingsSection
-          :bookings="userBookings"
-          :activities="activities"
-          @cancel-booking="handleCancelBooking"
-        />
+        <MyBookingsSection :user="user" @cancel-booking="handleCancelBooking" />
       </div>
 
       <!-- Not authenticated or wrong role -->
@@ -56,16 +52,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { computed } from 'vue'
 import { useAuth } from '@/utils/useAuth.js'
 import MyBookingsSection from '@/section/UserCenterPage/MyBookingsSection.vue'
 
 // Use auth composable
 const { user, userProfile, isAuthenticated, isAdminUser, isRegularUser, isLoading: authLoading } = useAuth()
-
-// State
-const activities = ref([])
-const userBookings = ref([])
 
 // Computed
 const userInitial = computed(() => {
@@ -87,106 +79,8 @@ const userDisplayName = computed(() => {
 // Methods
 const handleCancelBooking = (booking) => {
   console.log('Cancel booking:', booking)
-  // TODO: Implement cancel booking logic
-  // Update userBookings array
-  const index = userBookings.value.findIndex(b => b.id === booking.id)
-  if (index !== -1) {
-    userBookings.value[index].status = 'cancelled'
-  }
+  // MyBookingsSection now handles the cancellation internally
 }
-
-// Load data
-const loadActivities = async () => {
-  // TODO: Load activities from Firestore
-  // Mock data for now
-  activities.value = [
-    {
-      id: '1',
-      title: 'Mindfulness Meditation',
-      description: 'Join us for a guided meditation session to reduce stress and improve focus.',
-      type: 'meditation',
-      date: new Date('2024-01-15T10:00:00'),
-      duration: 60,
-      location: 'Community Center Room A',
-      maxParticipants: 20,
-      currentParticipants: 12,
-      price: 0,
-      instructor: 'Sarah Johnson',
-      requirements: ['Comfortable clothing', 'Yoga mat (optional)'],
-      status: 'active'
-    },
-    {
-      id: '2',
-      title: 'Anxiety Support Group',
-      description: 'A safe space to share experiences and learn coping strategies for anxiety.',
-      type: 'support-group',
-      date: new Date('2024-01-18T19:00:00'),
-      duration: 90,
-      location: 'Community Center Room B',
-      maxParticipants: 15,
-      currentParticipants: 8,
-      price: 0,
-      instructor: 'Dr. Michael Chen',
-      requirements: ['Confidentiality agreement'],
-      status: 'active'
-    },
-    {
-      id: '3',
-      title: 'Art Therapy Workshop',
-      description: 'Express your emotions through creative art activities.',
-      type: 'art-therapy',
-      date: new Date('2024-01-20T14:00:00'),
-      duration: 120,
-      location: 'Art Studio',
-      maxParticipants: 12,
-      currentParticipants: 6,
-      price: 15,
-      instructor: 'Emma Wilson',
-      requirements: ['All materials provided'],
-      status: 'active'
-    }
-  ]
-}
-
-const loadUserBookings = async () => {
-  // TODO: Load user bookings from Firestore
-  // Mock data for now
-  if (user.value) {
-    userBookings.value = [
-      {
-        id: 'booking1',
-        userId: user.value.uid,
-        activityId: '1',
-        bookingDate: new Date('2024-01-10T09:00:00'),
-        status: 'confirmed',
-        notes: 'Looking forward to this session'
-      },
-      {
-        id: 'booking2',
-        userId: user.value.uid,
-        activityId: '2',
-        bookingDate: new Date('2024-01-12T18:30:00'),
-        status: 'confirmed',
-        notes: ''
-      },
-      {
-        id: 'booking3',
-        userId: user.value.uid,
-        activityId: '3',
-        bookingDate: new Date('2024-01-05T14:00:00'),
-        status: 'confirmed',
-        notes: 'Past activity'
-      }
-    ]
-  }
-}
-
-onMounted(() => {
-  if (isAuthenticated.value) {
-    loadActivities()
-    loadUserBookings()
-  }
-})
 </script>
 
 <style scoped>

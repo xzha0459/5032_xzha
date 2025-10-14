@@ -2,20 +2,6 @@
   <div class="my-bookings-section">
     <div class="section-header">
       <h2 class="section-title">My Bookings</h2>
-      <div class="booking-stats">
-        <div class="stat-item">
-          <span class="stat-number">{{ confirmedBookings.length }}</span>
-          <span class="stat-label">Confirmed</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{{ upcomingBookings.length }}</span>
-          <span class="stat-label">Upcoming</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{{ pastBookings.length }}</span>
-          <span class="stat-label">Past</span>
-        </div>
-      </div>
     </div>
 
     <!-- Filter Tabs -->
@@ -32,7 +18,7 @@
     </div>
 
     <!-- Bookings List -->
-    <div class="bookings-list" v-if="filteredBookings.length > 0">
+    <div class="bookings-list" v-if="!isLoading && filteredBookings.length > 0">
       <div
         v-for="booking in paginatedBookings"
         :key="booking.id"
@@ -114,8 +100,18 @@
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="isLoading" class="loading-state">
+      <div class="card">
+        <div class="loading-content">
+          <div class="loading-spinner"></div>
+          <p>Loading your bookings...</p>
+        </div>
+      </div>
+    </div>
+
     <!-- No bookings found -->
-    <div v-else class="no-bookings">
+    <div v-else-if="!isLoading && filteredBookings.length === 0" class="no-bookings">
       <div class="card">
         <div class="no-bookings-content">
           <div class="no-bookings-text">No Bookings</div>
@@ -174,18 +170,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getDocs, collection, updateDoc, doc, query, where } from 'firebase/firestore'
+import { db } from '@/firebase.js'
 
 const props = defineProps({
-  bookings: {
-    type: Array,
-    required: true,
-    default: () => []
-  },
-  activities: {
-    type: Array,
-    required: true,
-    default: () => []
+  user: {
+    type: Object,
+    required: true
   }
 })
 
@@ -197,32 +189,35 @@ const currentPage = ref(1)
 const itemsPerPage = 8
 const showCancelModal = ref(false)
 const selectedBooking = ref(null)
+const bookings = ref([])
+const activities = ref([])
+const isLoading = ref(true)
 
 // Computed
 const confirmedBookings = computed(() => {
-  return props.bookings.filter(booking => booking.status === 'confirmed')
+  return bookings.value.filter(booking => booking.status === 'confirmed')
 })
 
 const upcomingBookings = computed(() => {
-  return props.bookings.filter(booking => {
+  return bookings.value.filter(booking => {
     const activity = getActivityById(booking.activityId)
     return booking.status === 'confirmed' && activity && new Date(activity.date) > new Date()
   })
 })
 
 const pastBookings = computed(() => {
-  return props.bookings.filter(booking => {
+  return bookings.value.filter(booking => {
     const activity = getActivityById(booking.activityId)
     return activity && new Date(activity.date) < new Date()
   })
 })
 
 const bookingFilters = computed(() => [
-  { id: 'all', label: 'All Bookings', count: props.bookings.length },
+  { id: 'all', label: 'All Bookings', count: bookings.value.length },
   { id: 'confirmed', label: 'Confirmed', count: confirmedBookings.value.length },
   { id: 'upcoming', label: 'Upcoming', count: upcomingBookings.value.length },
   { id: 'past', label: 'Past', count: pastBookings.value.length },
-  { id: 'cancelled', label: 'Cancelled', count: props.bookings.filter(b => b.status === 'cancelled').length }
+  { id: 'cancelled', label: 'Cancelled', count: bookings.value.filter(b => b.status === 'cancelled').length }
 ])
 
 const filteredBookings = computed(() => {
@@ -234,9 +229,9 @@ const filteredBookings = computed(() => {
     case 'past':
       return pastBookings.value
     case 'cancelled':
-      return props.bookings.filter(booking => booking.status === 'cancelled')
+      return bookings.value.filter(booking => booking.status === 'cancelled')
     default:
-      return props.bookings
+      return bookings.value
   }
 })
 
@@ -252,7 +247,7 @@ const paginatedBookings = computed(() => {
 
 // Methods
 const getActivityById = (activityId) => {
-  return props.activities.find(activity => activity.id === activityId)
+  return activities.value.find(activity => activity.id === activityId)
 }
 
 const getActivityTitle = (activityId) => {
@@ -344,13 +339,6 @@ const closeCancelModal = () => {
   selectedBooking.value = null
 }
 
-const confirmCancelBooking = () => {
-  if (selectedBooking.value) {
-    emit('cancel-booking', selectedBooking.value)
-    closeCancelModal()
-  }
-}
-
 const viewActivityDetails = (activityId) => {
   // TODO: Implement activity details modal
   console.log('View activity details:', activityId)
@@ -360,6 +348,80 @@ const rateActivity = (booking) => {
   // TODO: Implement rating modal
   console.log('Rate activity:', booking)
 }
+
+// Data loading methods
+const loadBookings = async () => {
+  if (!props.user) {
+    bookings.value = []
+    return
+  }
+
+  try {
+    const q = query(collection(db, 'bookings'), where('userId', '==', props.user.uid))
+    const snap = await getDocs(q)
+    bookings.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (error) {
+    console.error('Failed to load bookings:', error)
+    bookings.value = []
+  }
+}
+
+const loadActivities = async () => {
+  try {
+    const snap = await getDocs(collection(db, 'activities'))
+    activities.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (error) {
+    console.error('Failed to load activities:', error)
+    activities.value = []
+  }
+}
+
+const loadData = async () => {
+  isLoading.value = true
+  try {
+    await Promise.all([loadBookings(), loadActivities()])
+  } catch (error) {
+    console.error('Failed to load data:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Cancel booking functionality
+const confirmCancelBooking = async () => {
+  if (!selectedBooking.value) return
+
+  try {
+    // Update booking status to cancelled
+    await updateDoc(doc(db, 'bookings', selectedBooking.value.id), {
+      status: 'cancelled'
+    })
+
+    // Update activity participants count
+    const activity = getActivityById(selectedBooking.value.activityId)
+    if (activity) {
+      await updateDoc(doc(db, 'activities', activity.id), {
+        currentParticipants: Math.max(0, activity.currentParticipants - 1)
+      })
+    }
+
+    // Reload data and close modal
+    await loadData()
+    emit('cancel-booking', selectedBooking.value)
+    closeCancelModal()
+
+    alert('Booking cancelled successfully!')
+
+  } catch (error) {
+    console.error('Failed to cancel booking:', error)
+    alert('Failed to cancel booking. Please try again.')
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  loadData()
+})
 </script>
 
 <style scoped>
@@ -371,36 +433,14 @@ const rateActivity = (booking) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
   flex-wrap: wrap;
   gap: 1rem;
-}
-
-.booking-stats {
-  display: flex;
-  gap: 2rem;
-}
-
-.stat-item {
-  text-align: center;
-}
-
-.stat-number {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--forest-deep);
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
 }
 
 .booking-filters {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   border-bottom: 1px solid var(--border-light);
   flex-wrap: wrap;
 }
@@ -435,13 +475,42 @@ const rateActivity = (booking) => {
 
 .bookings-list {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
 /* Use global card styles */
 
+.loading-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
 
+.loading-content {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--forest-light);
+  border-top: 4px solid var(--forest-deep);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-content p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
 
 .booking-date {
   flex-shrink: 0;
@@ -459,11 +528,6 @@ const rateActivity = (booking) => {
   margin-bottom: 1rem;
   line-height: 1.5;
 }
-
-
-/* moved to global: .card-note */
-
-/* removed local .booking-footer and .booking-actions styles; using global .card-footer and .card-action */
 
 .no-bookings {
   text-align: center;
@@ -521,12 +585,12 @@ const rateActivity = (booking) => {
     align-items: stretch;
   }
 
-  .booking-stats {
+  .booking-filters {
     justify-content: center;
   }
 
-  .booking-filters {
-    justify-content: center;
+  .bookings-list {
+    grid-template-columns: 1fr;
   }
 
   .booking-actions {
