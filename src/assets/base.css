@@ -834,6 +834,49 @@ textarea.input {
 }
 
 /* ===========================================
+   TOGGLE TABS (Global, used for view switches)
+   Similar look to booking-filters tabs
+   =========================================== */
+.toggle-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.toggle-tab {
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-tab:hover {
+  color: var(--forest-medium);
+  background: var(--forest-light);
+}
+
+.toggle-tab.active {
+  color: var(--forest-deep);
+  border-bottom-color: var(--forest-deep);
+  background: var(--forest-light);
+}
+
+.toggle-tab svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ===========================================
    TABLE STYLES
    =========================================== */
 

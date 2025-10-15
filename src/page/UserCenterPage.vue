@@ -30,10 +30,51 @@
         </div>
 
         <!-- My Bookings Section -->
-        <MyBookingsSection :user="user" @cancel-booking="handleCancelBooking" />
+        <div class="bookings-section">
+          <!-- Section Header -->
+          <div class="section-header">
+            <h2 class="section-title">My Bookings</h2>
+          </div>
+
+          <!-- View Toggle -->
+          <div class="toggle-tabs">
+            <button
+              :class="['toggle-tab', { active: viewMode === 'list' }]"
+              @click="viewMode = 'list'"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+              </svg>
+              List View
+            </button>
+            <button
+              :class="['toggle-tab', { active: viewMode === 'calendar' }]"
+              @click="viewMode = 'calendar'"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+              </svg>
+              Calendar View
+            </button>
+          </div>
+
+          <!-- List View -->
+          <MyBookingsSection
+            v-if="viewMode === 'list'"
+            :user="user"
+            @cancel-booking="handleCancelBooking"
+          />
+
+          <!-- Calendar View -->
+          <MyBookingCalendar
+            v-if="viewMode === 'calendar'"
+            :user="user"
+            @booking-selected="handleBookingSelected"
+            @date-selected="handleDateSelected"
+          />
+        </div>
       </div>
 
-      <!-- Not authenticated or wrong role -->
       <div v-else class="not-authenticated">
         <div class="card">
           <h2>Access Denied</h2>
@@ -52,12 +93,16 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuth } from '@/utils/useAuth.js'
 import MyBookingsSection from '@/section/UserCenterPage/MyBookingsSection.vue'
+import MyBookingCalendar from '@/section/UserCenterPage/MyBookingCalendar.vue'
 
 // Use auth composable
 const { user, userProfile, isAuthenticated, isAdminUser, isRegularUser, isLoading: authLoading } = useAuth()
+
+// State
+const viewMode = ref('list') // 'list' or 'calendar'
 
 // Computed
 const userInitial = computed(() => {
@@ -81,11 +126,44 @@ const handleCancelBooking = (booking) => {
   console.log('Cancel booking:', booking)
   // MyBookingsSection now handles the cancellation internally
 }
+
+const handleBookingSelected = (data) => {
+  const { booking, activity, hasConflict, conflictingBookings } = data
+
+  let message = `Booking: ${activity.title}\nDate: ${new Date(activity.date).toLocaleDateString()}\nTime: ${new Date(activity.date).toLocaleTimeString()}\nStatus: ${booking.status}`
+
+  if (hasConflict) {
+    message += `\n\n⚠️ CONFLICT DETECTED!\nConflicting bookings:\n${conflictingBookings.map(cb => {
+      return `- ${cb.activity?.title || 'Unknown'} (${cb.status})`
+    }).join('\n')}`
+  }
+
+  alert(message)
+}
+
+const handleDateSelected = (data) => {
+  const { date, availableActivities } = data
+
+  if (availableActivities.length > 0) {
+    alert(`Available activities on ${date}:\n${availableActivities.map(a => a.title).join('\n')}`)
+  } else {
+    alert(`No available activities on ${date}`)
+  }
+}
 </script>
 
 <style scoped>
 .user-profile-section {
   margin-bottom: 1rem;
+}
+
+.bookings-section {
+  margin-top: 2rem;
+}
+
+/* View toggle now uses global .toggle-tabs/.toggle-tab styles */
+.card {
+  margin-top: 1rem;
 }
 
 .profile-header {
@@ -95,8 +173,8 @@ const handleCancelBooking = (booking) => {
 }
 
 .profile-avatar {
-  width: 80px;
-  height: 80px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   background: var(--forest-deep);
   display: flex;
@@ -119,6 +197,7 @@ const handleCancelBooking = (booking) => {
   margin: 0 0 0.5rem 0;
   color: var(--forest-deep);
   font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .profile-email {

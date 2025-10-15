@@ -31,6 +31,7 @@
           <!-- Activities List Tab -->
           <ActivityListSection
             v-if="activeTab === 'activities'"
+            ref="activityListRef"
             :activities="activities"
             @book-activity="handleBookActivity"
           />
@@ -111,6 +112,7 @@ const selectedActivity = ref(null)
 const showBookingModal = ref(false)
 const isBooking = ref(false)
 const bookingNotes = ref('')
+const activityListRef = ref(null)
 
 // Tab configuration
 const tabs = computed(() => {
@@ -131,6 +133,10 @@ const closeBookingModal = () => {
   selectedActivity.value = null
   bookingNotes.value = ''
   isBooking.value = false
+  // Close activity details modal if it's open
+  if (activityListRef.value && activityListRef.value.closeActivityDetails) {
+    activityListRef.value.closeActivityDetails()
+  }
 }
 
 const confirmBooking = async () => {

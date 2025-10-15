@@ -305,9 +305,10 @@ const canBookActivity = (activity) => {
     return false
   }
 
+  const activityDate = new Date(activity.date)
   return activity.status === 'active' &&
          activity.currentParticipants < activity.maxParticipants &&
-         activity.date > new Date()
+         activityDate > new Date()
 }
 
 const getBookingButtonText = (activity) => {
@@ -318,7 +319,7 @@ const getBookingButtonText = (activity) => {
 
   if (activity.status !== 'active') return 'Cancelled'
   if (activity.currentParticipants >= activity.maxParticipants) return 'Full'
-  if (activity.date < new Date()) return 'Past Event'
+  if (new Date(activity.date) < new Date()) return 'Past Event'
   return 'Book Now'
 }
 
@@ -396,13 +397,18 @@ const bookActivity = (activity) => {
 
   if (canBookActivity(activity)) {
     emit('book-activity', activity)
-    closeActivityDetails()
+    // Don't close activity details modal - let the booking modal handle it
   }
 }
 
 const viewDetails = (activity) => {
   selectActivity(activity)
 }
+
+// Expose methods for parent component
+defineExpose({
+  closeActivityDetails
+})
 </script>
 
 <style scoped>

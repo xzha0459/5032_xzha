@@ -1,15 +1,11 @@
 <template>
   <div class="my-bookings-section">
-    <div class="section-header">
-      <h2 class="section-title">My Bookings</h2>
-    </div>
-
     <!-- Filter Tabs -->
-    <div class="booking-filters">
+    <div class="toggle-tabs">
       <button
         v-for="filter in bookingFilters"
         :key="filter.id"
-        :class="['filter-tab', { active: activeFilter === filter.id }]"
+        :class="['toggle-tab', { active: activeFilter === filter.id }]"
         @click="activeFilter = filter.id"
       >
         {{ filter.label }}
@@ -437,36 +433,7 @@ onMounted(() => {
   gap: 1rem;
 }
 
-.booking-filters {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border-light);
-  flex-wrap: wrap;
-}
-
-.filter-tab {
-  padding: 0.75rem 1rem;
-  border: none;
-  background: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.filter-tab:hover {
-  color: var(--forest-medium);
-  background: var(--forest-light);
-}
-
-.filter-tab.active {
-  color: var(--forest-deep);
-  border-bottom-color: var(--forest-deep);
-  background: var(--forest-light);
-}
+/* booking-filters now uses global .toggle-tabs/.toggle-tab */
 
 .filter-count {
   font-size: 0.75rem;
