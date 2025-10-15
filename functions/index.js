@@ -473,3 +473,119 @@ Remember: You are here to support, not replace professional mental health care.`
     }
   });
 });
+
+// 情绪日记 AI 助手 Firebase Function
+exports.moodDiaryAI = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Only POST allowed' });
+    }
+
+    try {
+      if (!GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'Gemini API key not configured' });
+      }
+
+      const { type, mood, text, moodHistory, userId } = req.body;
+
+      if (!type || !mood) {
+        return res.status(400).json({ error: 'Type and mood are required' });
+      }
+
+      // 初始化 Gemini AI
+      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+      let prompt = '';
+      let maxTokens = 150;
+
+      if (type === 'tips') {
+        // 实时情绪建议
+        prompt = `You are a compassionate mental health assistant. A user is feeling ${mood} today. ${text ? `They shared: "${text}"` : ''}
+
+Please provide exactly 3 practical, actionable tips to help them feel better or maintain their positive mood. Each tip should be:
+- Under 20 words
+- Specific and actionable
+- Encouraging and supportive
+- Evidence-based
+
+Format your response as exactly 3 numbered tips, one per line, like this:
+1. First tip here
+2. Second tip here
+3. Third tip here
+
+Do not include any introductory text or explanations.`;
+
+        maxTokens = 150;
+
+      } else if (type === 'weekly_summary') {
+        // 周报摘要
+        prompt = `You are a mental health coach analyzing a user's mood diary. Based on their past week entries: ${moodHistory}
+
+Please provide:
+1. A brief, encouraging summary of their emotional patterns (2-3 sentences)
+2. 2-3 specific suggestions for improvement or maintenance
+
+Keep the entire response under 150 words. Be warm, supportive, and focus on positive growth.`;
+
+        maxTokens = 200;
+
+      } else if (type === 'insights') {
+        // 深度洞察分析
+        prompt = `You are a mental health professional. Analyze this mood data: ${moodHistory}
+
+Provide insights about:
+- Emotional patterns and triggers
+- Positive trends to celebrate
+- Areas for gentle improvement
+- Personalized recommendations
+
+Be professional yet warm, encouraging, and actionable. Keep under 200 words.`;
+
+        maxTokens = 250;
+      }
+
+      // 发送请求并获取响应
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          temperature: 0.7,
+          topP: 0.8,
+          topK: 40
+        }
+      });
+
+      const reply = response.text;
+
+      // 记录使用情况（可选）
+      console.log(`Mood Diary AI used for user ${userId}, type: ${type}, mood: ${mood}`);
+
+      // 返回响应
+      return res.status(200).json({
+        success: true,
+        reply: reply,
+        type: type,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Mood Diary AI error:', error);
+
+      let errorMessage = 'Sorry, I\'m having trouble providing insights right now. Please try again later.';
+
+      if (error.message.includes('API key')) {
+        errorMessage = 'AI service configuration error. Please contact support.';
+      } else if (error.message.includes('quota') || error.message.includes('limit')) {
+        errorMessage = 'AI service temporarily unavailable due to high demand. Please try again in a few minutes.';
+      } else if (error.message.includes('safety')) {
+        errorMessage = 'I understand you\'re going through a difficult time. For your wellbeing, I\'d encourage you to speak with a mental health professional.';
+      }
+
+      return res.status(500).json({
+        success: false,
+        error: errorMessage
+      });
+    }
+  });
+});

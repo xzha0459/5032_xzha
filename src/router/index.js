@@ -8,6 +8,7 @@ import WellbeingPage from '@/page/WellbeingPage.vue'
 import MapPage from '@/page/MapPage.vue'
 import CommunityPage from '@/page/CommunityPage.vue'
 import UserCenterPage from '@/page/UserCenterPage.vue'
+import MoodDiaryPage from '@/page/MoodDiaryPage.vue'
 
 const routes = [
   {
@@ -47,6 +48,14 @@ const routes = [
     path: '/user-center',
     name: 'UserCenter',
     component: UserCenterPage,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/mood-diary',
+    name: 'MoodDiary',
+    component: MoodDiaryPage,
     meta: {
       requiresAuth: true
     }

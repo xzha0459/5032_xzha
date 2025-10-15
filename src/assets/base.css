@@ -165,6 +165,13 @@ h6 { font-size: 0.4rem; }
   text-align: center;
 }
 
+.section-subtitle {
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0.5rem;
+  line-height: 1.4;
+}
+
 /* Button Styles */
 .btn {
   display: inline-flex;
@@ -202,6 +209,7 @@ h6 { font-size: 0.4rem; }
   color: var(--forest-light);
   padding: 0.75rem 1.5rem;
   font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .btn.secondary:hover {

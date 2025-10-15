@@ -2,7 +2,7 @@
   <div class="page">
     <div class="user-page-header">
       <h1 class="user-page-title">User Center</h1>
-      <p class="user-page-subtitle">Manage your bookings and preferences</p>
+      <div class="user-page-subtitle">Manage your bookings and preferences</div>
     </div>
 
     <div class="user-page-content">
@@ -13,65 +13,93 @@
       </div>
 
       <!-- User content -->
-      <div v-else-if="isAuthenticated && isRegularUser">
-        <!-- User Profile Section -->
-        <div class="user-profile-section">
-          <div class="card">
-            <div class="profile-header">
-              <div class="profile-avatar">
-                <span class="avatar-text">{{ userInitial }}</span>
-              </div>
-              <div class="profile-info">
-                <h2 class="profile-name">{{ userDisplayName }}</h2>
-                <p class="profile-email">{{ user?.email }}</p>
-              </div>
+      <div v-else-if="isAuthenticated && isRegularUser" class="user-content-layout">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+          <!-- User Profile in Sidebar -->
+          <div class="sidebar-profile">
+            <div class="profile-avatar">
+              <span class="avatar-text">{{ userInitial }}</span>
+            </div>
+            <div class="profile-info">
+              <h3 class="profile-name">{{ userDisplayName }}</h3>
+              <p class="profile-email">{{ user?.email }}</p>
             </div>
           </div>
+
+          <nav class="sidebar-nav">
+            <button
+              v-for="section in availableSections"
+              :key="section.id"
+              :class="['nav-item', { active: activeSection === section.id }]"
+              @click="setActiveSection(section.id)"
+            >
+              <span class="nav-label">{{ section.label }}</span>
+            </button>
+          </nav>
         </div>
 
-        <!-- My Bookings Section -->
-        <div class="bookings-section">
-          <!-- Section Header -->
-          <div class="section-header">
-            <h2 class="section-title">My Bookings</h2>
+        <!-- Main Content -->
+        <div class="main-content">
+          <!-- Mood History Section -->
+          <div v-if="activeSection === 'mood'" class="mood-history-section">
+            <div class="section-header">
+              <h2 class="section-title">Mood Diary</h2>
+              <router-link to="/mood-diary" class="btn primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                </svg>
+                Add Entry
+              </router-link>
+            </div>
+
+            <MoodHistory />
           </div>
 
-          <!-- View Toggle -->
-          <div class="toggle-tabs">
-            <button
-              :class="['toggle-tab', { active: viewMode === 'list' }]"
-              @click="viewMode = 'list'"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
-              </svg>
-              List View
-            </button>
-            <button
-              :class="['toggle-tab', { active: viewMode === 'calendar' }]"
-              @click="viewMode = 'calendar'"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
-              </svg>
-              Calendar View
-            </button>
+          <!-- My Bookings Section -->
+          <div v-if="activeSection === 'bookings'" class="bookings-section">
+            <!-- Section Header -->
+            <div class="section-header">
+              <h2 class="section-title">My Bookings</h2>
+            </div>
+
+            <!-- View Toggle -->
+            <div class="toggle-tabs">
+              <button
+                :class="['toggle-tab', { active: viewMode === 'list' }]"
+                @click="viewMode = 'list'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+                </svg>
+                List View
+              </button>
+              <button
+                :class="['toggle-tab', { active: viewMode === 'calendar' }]"
+                @click="viewMode = 'calendar'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                </svg>
+                Calendar View
+              </button>
+            </div>
+
+            <!-- List View -->
+            <MyBookingsSection
+              v-if="viewMode === 'list'"
+              :user="user"
+              @cancel-booking="handleCancelBooking"
+            />
+
+            <!-- Calendar View -->
+            <MyBookingCalendar
+              v-if="viewMode === 'calendar'"
+              :user="user"
+              @booking-selected="handleBookingSelected"
+              @date-selected="handleDateSelected"
+            />
           </div>
-
-          <!-- List View -->
-          <MyBookingsSection
-            v-if="viewMode === 'list'"
-            :user="user"
-            @cancel-booking="handleCancelBooking"
-          />
-
-          <!-- Calendar View -->
-          <MyBookingCalendar
-            v-if="viewMode === 'calendar'"
-            :user="user"
-            @booking-selected="handleBookingSelected"
-            @date-selected="handleDateSelected"
-          />
         </div>
       </div>
 
@@ -97,12 +125,31 @@ import { computed, ref } from 'vue'
 import { useAuth } from '@/utils/useAuth.js'
 import MyBookingsSection from '@/section/UserCenterPage/MyBookingsSection.vue'
 import MyBookingCalendar from '@/section/UserCenterPage/MyBookingCalendar.vue'
+import MoodHistory from '@/section/UserCenterPage/MoodHistory.vue'
 
 // Use auth composable
 const { user, userProfile, isAuthenticated, isAdminUser, isRegularUser, isLoading: authLoading } = useAuth()
 
 // State
 const viewMode = ref('list') // 'list' or 'calendar'
+const activeSection = ref('mood') // 'mood', 'bookings'
+
+// Available sections
+const availableSections = ref([
+  {
+    id: 'mood',
+    label: 'Mood Diary'
+  },
+  {
+    id: 'bookings',
+    label: 'My Bookings'
+  }
+])
+
+// Methods
+const setActiveSection = (sectionId) => {
+  activeSection.value = sectionId
+}
 
 // Computed
 const userInitial = computed(() => {
@@ -153,57 +200,116 @@ const handleDateSelected = (data) => {
 </script>
 
 <style scoped>
-.user-profile-section {
-  margin-bottom: 1rem;
+.user-page-content {
+  padding: 4rem 8rem 4rem 4rem;
 }
 
-.bookings-section {
-  margin-top: 2rem;
+.user-content-layout {
+  display: flex;
+  gap: 2rem;
+  min-height: 600px;
 }
 
-/* View toggle now uses global .toggle-tabs/.toggle-tab styles */
-.card {
-  margin-top: 1rem;
+.sidebar {
+  width: 250px;
+  background: transparent;
+  padding: 1rem;
+  height: fit-content;
+  position: sticky;
+  top: 2rem;
 }
 
-.profile-header {
+.sidebar-profile {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border-light);
 }
 
-.profile-avatar {
-  width: 70px;
-  height: 70px;
+.sidebar-profile .profile-avatar {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: var(--forest-deep);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
-.avatar-text {
-  font-size: 2rem;
+.sidebar-profile .avatar-text {
+  font-size: 1.5rem;
   font-weight: 600;
   color: white;
 }
 
-.profile-info {
+.sidebar-profile .profile-info {
   flex: 1;
 }
 
-.profile-name {
-  margin: 0 0 0.5rem 0;
+.sidebar-profile .profile-name {
+  margin: 0 0 0.25rem 0;
   color: var(--forest-deep);
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 600;
 }
 
-.profile-email {
+.sidebar-profile .profile-email {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 1rem;
+  font-size: 0.85rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  width: 100%;
+}
+
+.nav-item:hover {
+  background: var(--forest-light);
+  color: var(--forest-deep);
+}
+
+.nav-item.active {
+  background: var(--forest-deep);
+  color: white;
+}
+
+.nav-label {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0;
+}
+
+/* Section Styles */
+.section-title {
+  margin-top: 0;
+  text-align: left;
+}
+
+.card {
+  margin-top: 1rem;
 }
 
 .not-authenticated {
@@ -236,9 +342,52 @@ const handleDateSelected = (data) => {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .profile-header {
+  .user-content-layout {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .sidebar {
+    width: 100%;
+    position: static;
+    order: 2;
+  }
+
+  .main-content {
+    order: 1;
+  }
+
+  .sidebar-profile {
     flex-direction: column;
     text-align: center;
+    gap: 0.75rem;
+  }
+
+  .sidebar-profile .profile-info {
+    text-align: center;
+  }
+
+  .sidebar-profile .profile-name,
+  .sidebar-profile .profile-email {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 0.25rem;
+  }
+
+  .nav-item {
+    flex-shrink: 0;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  .nav-label {
+    font-size: 0.85rem;
   }
 }
 </style>

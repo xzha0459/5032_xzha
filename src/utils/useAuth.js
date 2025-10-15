@@ -42,6 +42,19 @@ const fetchUserProfile = async (uid) => {
     }
   } catch (error) {
     console.error('Error fetching user profile:', error)
+
+    // Retry logic for network errors
+    if (error.message.includes('network') ||
+        error.message.includes('connection') ||
+        error.message.includes('400') ||
+        error.message.includes('500')) {
+      console.log('Retrying user profile fetch in 2 seconds...')
+      setTimeout(() => {
+        fetchUserProfile(uid)
+      }, 2000)
+      return
+    }
+
     userProfile.value = null
   }
 }

@@ -26,6 +26,7 @@
         <button @click="goToHome" class="nav-link">Home</button>
         <button @click="goToWellbeing" class="nav-link">Wellbeing</button>
         <button @click="goToMap" class="nav-link">Find Support</button>
+        <button v-if="user" @click="goToMoodDiary" class="nav-link">Mood Diary</button>
         <button v-if="user" @click="goToCommunity" class="nav-link">Community</button>
       </div>
 
@@ -86,6 +87,11 @@
                   class="mobile-nav-link"
                   :class="{ 'active': isCurrentRoute('Map') }">
             Find Support
+          </button>
+          <button v-if="user" @click="() => { goToMoodDiary(); closeMobileMenu(); }"
+                  class="mobile-nav-link"
+                  :class="{ 'active': isCurrentRoute('MoodDiary') }">
+            Mood Diary
           </button>
           <button v-if="user" @click="() => { goToCommunity(); closeMobileMenu(); }"
                   class="mobile-nav-link"
@@ -204,6 +210,11 @@ const goToWellbeing = () => {
 const goToMap = () => {
   console.log('goToMap clicked')
   router.push('/map')
+}
+
+const goToMoodDiary = () => {
+  console.log('goToMoodDiary clicked')
+  router.push('/mood-diary')
 }
 
 const goToCommunity = () => {
