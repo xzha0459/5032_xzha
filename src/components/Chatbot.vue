@@ -255,14 +255,14 @@ export default {
 </script>
 
 <style scoped>
+/* 容器和布局 */
 .chatbot-container {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 10000; /* top-most */
+  z-index: 10000;
 }
 
-/* 聊天按钮 */
 .chat-toggle {
   width: 60px;
   height: 60px;
@@ -280,10 +280,8 @@ export default {
 .chat-toggle:hover {
   transform: scale(1.1);
   background: var(--forest-deep);
-  box-shadow: 0 6px 25px var(--shadow-medium);
 }
 
-/* 聊天窗口 */
 .chat-window {
   width: 350px;
   height: 450px;
@@ -296,17 +294,11 @@ export default {
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* 聊天头部 */
+/* 头部 */
 .chat-header {
   background: var(--forest-dark);
   padding: 1rem;
@@ -368,7 +360,8 @@ export default {
   max-width: 85%;
 }
 
-.bot-message {
+.bot-message,
+.assistant-message {
   align-self: flex-start;
 }
 
@@ -387,7 +380,8 @@ export default {
   flex-shrink: 0;
 }
 
-.bot-message .message-avatar {
+.bot-message .message-avatar,
+.assistant-message .message-avatar {
   background: var(--forest-sage);
   color: var(--forest-dark);
 }
@@ -400,10 +394,10 @@ export default {
 .message-content {
   padding: 0.75rem 1rem;
   border-radius: 12px;
-  position: relative;
 }
 
-.bot-message .message-content {
+.bot-message .message-content,
+.assistant-message .message-content {
   background: var(--bg-secondary);
   color: var(--text-primary);
 }
@@ -411,7 +405,6 @@ export default {
 .user-message .message-content {
   background: var(--forest-dark);
   color: white;
-  border: none;
 }
 
 .message-content p {
@@ -449,14 +442,8 @@ export default {
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes typing {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.5;
-  }
-  30% {
-    transform: translateY(-10px);
-    opacity: 1;
-  }
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-10px); opacity: 1; }
 }
 
 /* 输入区域 */
@@ -515,7 +502,6 @@ export default {
   cursor: not-allowed;
 }
 
-/* 重试按钮 */
 .retry-container {
   display: flex;
   justify-content: center;
@@ -541,7 +527,7 @@ export default {
   transform: translateY(-1px);
 }
 
-/* 滚动条样式 */
+/* 滚动条 */
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
@@ -560,7 +546,7 @@ export default {
   background: var(--forest-deep);
 }
 
-/* 响应式设计 */
+/* 响应式 */
 @media (max-width: 480px) {
   .chatbot-container {
     bottom: 10px;
