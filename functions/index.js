@@ -411,6 +411,8 @@ Guidelines:
 - Be supportive and encouraging
 - Avoid giving medical diagnoses or specific treatment recommendations
 - Suggest professional help when appropriate
+- Keep your responses concise and focused - aim for 2-3 sentences maximum
+- Be direct and to the point while maintaining empathy
 
 Remember: You are here to support, not replace professional mental health care.`;
 
@@ -432,7 +434,13 @@ Remember: You are here to support, not replace professional mental health care.`
       // 发送请求并获取响应
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: fullPrompt
+        contents: fullPrompt,
+        generationConfig: {
+          maxOutputTokens: 150,  // 限制最大输出token数量，大约2-3句话
+          temperature: 0.7,      // 保持适度的创造性
+          topP: 0.8,            // 控制词汇选择的多样性
+          topK: 40              // 限制候选词汇数量
+        }
       });
 
       const reply = response.text;
