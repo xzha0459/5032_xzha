@@ -201,7 +201,7 @@ const handleDateSelected = (data) => {
 
 <style scoped>
 .user-page-content {
-  padding: 4rem 8rem 4rem 4rem;
+  padding: 4rem 6rem 4rem 6rem;
 }
 
 .user-content-layout {
@@ -236,6 +236,7 @@ const handleDateSelected = (data) => {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .sidebar-profile .avatar-text {
@@ -246,6 +247,8 @@ const handleDateSelected = (data) => {
 
 .sidebar-profile .profile-info {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sidebar-profile .profile-name {
@@ -259,6 +262,10 @@ const handleDateSelected = (data) => {
   margin: 0;
   color: var(--text-secondary);
   font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .sidebar-nav {
@@ -303,8 +310,16 @@ const handleDateSelected = (data) => {
 }
 
 /* Section Styles */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
 .section-title {
   margin-top: 0;
+  margin-bottom: 0;
   text-align: left;
 }
 
@@ -350,11 +365,11 @@ const handleDateSelected = (data) => {
   .sidebar {
     width: 100%;
     position: static;
-    order: 2;
+    order: 1;
   }
 
   .main-content {
-    order: 1;
+    order: 2;
   }
 
   .sidebar-profile {
@@ -375,14 +390,13 @@ const handleDateSelected = (data) => {
   }
 
   .sidebar-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 0.25rem;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   .nav-item {
     flex-shrink: 0;
-    min-width: 120px;
+    min-width: auto;
     justify-content: center;
   }
 

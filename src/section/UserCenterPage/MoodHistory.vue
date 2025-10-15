@@ -1,7 +1,7 @@
 <template>
   <div class="mood-history">
     <div class="section-header">
-      <h2 class="section-title">Your Mood Journey</h2>
+      <h3 class="section-title">Your Mood Journey</h3>
       <p class="section-subtitle">Track your emotional patterns and insights</p>
     </div>
 
@@ -58,18 +58,28 @@
       <div class="entries-section">
         <div class="section-header">
           <h3 class="section-title">Recent Entries</h3>
-          <div class="filter-controls">
-            <select v-model="selectedFilter" class="filter-select">
-              <option value="all">All Moods</option>
-              <option value="happy">Happy</option>
-              <option value="calm">Calm</option>
-              <option value="excited">Excited</option>
-              <option value="neutral">Neutral</option>
-              <option value="tired">Tired</option>
-              <option value="anxious">Anxious</option>
-              <option value="sad">Sad</option>
-              <option value="angry">Angry</option>
-            </select>
+          <div class="header-actions">
+            <div class="filter-controls">
+              <select v-model="selectedFilter" class="filter">
+                <option value="all">All Moods</option>
+                <option value="happy">Happy</option>
+                <option value="calm">Calm</option>
+                <option value="excited">Excited</option>
+                <option value="neutral">Neutral</option>
+                <option value="tired">Tired</option>
+                <option value="anxious">Anxious</option>
+                <option value="sad">Sad</option>
+                <option value="angry">Angry</option>
+              </select>
+            </div>
+            <div class="export-buttons">
+              <button class="btn secondary" @click="exportToPDF">
+                Export to PDF
+              </button>
+              <button class="btn secondary" @click="exportToCSV">
+                Export to CSV
+              </button>
+            </div>
           </div>
         </div>
 
@@ -92,13 +102,6 @@
             <div class="entry-content" v-if="entry.text">
               <p>{{ entry.text }}</p>
             </div>
-
-
-            <div class="entry-actions">
-              <button class="btn secondary small" @click="exportEntry(entry)">
-                Export
-              </button>
-            </div>
           </div>
         </div>
 
@@ -110,18 +113,6 @@
         </div>
       </div>
 
-      <!-- Export Options -->
-      <div class="export-section">
-        <h3 class="section-title">Export Your Data</h3>
-        <div class="export-options">
-          <button class="btn primary" @click="exportToPDF">
-            Export to PDF
-          </button>
-          <button class="btn secondary" @click="exportToCSV">
-            Export to CSV
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -359,21 +350,6 @@ const formatDate = (dateString) => {
   })
 }
 
-const exportEntry = (entry) => {
-  const data = {
-    mood: getMoodLabel(entry.mood),
-    date: formatDate(entry.createdAt),
-    text: entry.text || ''
-  }
-
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `mood-entry-${entry.id}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-}
 
 const exportToPDF = () => {
   // Simple PDF generation using browser print
@@ -555,11 +531,20 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-.filter-select {
-  padding: 0.5rem;
-  border: 2px solid var(--border-light);
-  border-radius: 6px;
-  background: white;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .entries-list {
@@ -612,10 +597,6 @@ onMounted(() => {
 }
 
 
-.entry-actions {
-  display: flex;
-  gap: 0.5rem;
-}
 
 /* Export */
 .export-options {
@@ -639,9 +620,16 @@ onMounted(() => {
     align-items: stretch;
   }
 
-  .export-options {
+  .header-actions {
     flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
   }
+
+  .export-buttons {
+    justify-content: center;
+  }
+
 }
 
 @media (max-width: 480px) {

@@ -90,6 +90,10 @@ const textInput = ref('')
 const isSubmitting = ref(false)
 const showSuccess = ref(false)
 const aiTips = ref([])
+const isLoadingTips = ref(false)
+
+// Simple cache for tips
+const tipsCache = new Map()
 
 // Mood options
 const moodOptions = [
@@ -155,17 +159,14 @@ const submitMoodEntry = async () => {
   isSubmitting.value = true
 
   try {
-    // Prepare mood entry data
-    const moodEntry = {
+    // Save mood entry
+    await addDoc(collection(db, 'moodEntries'), {
       userId: user.value.uid,
       mood: selectedMood.value,
       text: textInput.value.trim(),
       timestamp: serverTimestamp(),
       createdAt: new Date().toISOString()
-    }
-
-    // Save to Firestore
-    await addDoc(collection(db, 'moodEntries'), moodEntry)
+    })
 
     // Generate AI tips
     await generateAITips(selectedMood.value, textInput.value)
@@ -182,12 +183,19 @@ const submitMoodEntry = async () => {
 }
 
 const generateAITips = async (mood, text) => {
+  // Check cache first
+  const cacheKey = `${mood}_${text ? text.length : 0}`
+  if (tipsCache.has(cacheKey)) {
+    aiTips.value = tipsCache.get(cacheKey)
+    return
+  }
+
+  isLoadingTips.value = true
+
   try {
     const response = await fetch('https://mooddiaryai-ha3ghdr32q-uc.a.run.app', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         type: 'tips',
         mood: mood,
@@ -198,15 +206,22 @@ const generateAITips = async (mood, text) => {
 
     const result = await response.json()
     if (result.success) {
-      // Parse tips from AI response - split by lines and clean up
       const tips = result.reply
         .split('\n')
-        .map(tip => tip.replace(/^\d+\.\s*/, '').trim()) // Remove numbering
-        .filter(tip => tip.length > 0) // Remove empty lines
-      aiTips.value = tips.slice(0, 3)
+        .map(tip => tip.replace(/^\d+\.\s*/, '').trim())
+        .filter(tip => tip.length > 0)
+        .slice(0, 3)
+
+      aiTips.value = tips
+      tipsCache.set(cacheKey, tips)
+    } else {
+      aiTips.value = getFallbackTips(mood)
     }
   } catch (error) {
     console.error('Error generating AI tips:', error)
+    aiTips.value = getFallbackTips(mood)
+  } finally {
+    isLoadingTips.value = false
   }
 }
 
@@ -215,6 +230,21 @@ const startNewEntry = () => {
   aiTips.value = []
   selectedMood.value = ''
   textInput.value = ''
+}
+
+const getFallbackTips = (mood) => {
+  const tips = {
+    happy: ["Share your joy with someone", "Appreciate what made you happy", "Do something kind for others"],
+    calm: ["Practice deep breathing", "Take a peaceful walk", "Try meditation"],
+    excited: ["Channel energy into creativity", "Share enthusiasm with friends", "Tackle something challenging"],
+    neutral: ["Try a new activity", "Connect with someone", "Reflect on your goals"],
+    tired: ["Take a power nap", "Drink water and eat", "Do gentle stretching"],
+    anxious: ["Practice 4-7-8 breathing", "Write down worries", "Focus on what you control"],
+    sad: ["Reach out to someone", "Allow yourself to feel", "Do something comforting"],
+    angry: ["Count to 10 slowly", "Express feelings in journal", "Try physical activity"]
+  }
+
+  return tips[mood] || ["Take deep breaths", "Be kind to yourself", "Talk to someone you trust"]
 }
 
 const goToWellbeing = () => {
@@ -228,29 +258,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.mood-diary-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.mood-diary-title {
-  font-size: 2rem;
-  color: var(--forest-deep);
-  margin-bottom: 0.5rem;
-}
-
-.mood-diary-subtitle {
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-}
-
 .mood-diary-content {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
-
-
 
 /* Mood Selection */
 .mood-options {
@@ -313,13 +325,11 @@ onMounted(() => {
   border-color: var(--forest-deep);
 }
 
-
 /* Submit Section */
 .submit-section {
   text-align: center;
   padding: 1rem;
 }
-
 
 /* Success State */
 .success-state {
@@ -380,30 +390,8 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-/* Success Message */
-.success-message {
-  text-align: center;
-  padding: 2rem;
-  background: var(--success-light);
-  border: 2px solid var(--success);
-  border-radius: 12px;
-  color: var(--success-dark);
-}
-
-.success-icon {
-  font-size: 3rem;
-  color: var(--success);
-  margin-bottom: 1rem;
-}
-
-.success-tips {
-  margin-top: 1rem;
-  font-style: italic;
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
-
   .mood-options {
     grid-template-columns: repeat(2, 1fr);
   }

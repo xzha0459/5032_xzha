@@ -499,23 +499,18 @@ exports.moodDiaryAI = functions.https.onRequest((req, res) => {
       let maxTokens = 150;
 
       if (type === 'tips') {
-        // 实时情绪建议
-        prompt = `You are a compassionate mental health assistant. A user is feeling ${mood} today. ${text ? `They shared: "${text}"` : ''}
+        // 实时情绪建议 - 优化后的简洁prompt
+        prompt = `User feels ${mood}. ${text ? `Context: "${text}"` : ''}
 
-Please provide exactly 3 practical, actionable tips to help them feel better or maintain their positive mood. Each tip should be:
-- Under 20 words
-- Specific and actionable
-- Encouraging and supportive
-- Evidence-based
+Give 3 short tips (under 15 words each):
 
-Format your response as exactly 3 numbered tips, one per line, like this:
-1. First tip here
-2. Second tip here
-3. Third tip here
+1.
+2.
+3.
 
-Do not include any introductory text or explanations.`;
+No intro text.`;
 
-        maxTokens = 150;
+        maxTokens = 100; // 减少token数量
 
       } else if (type === 'weekly_summary') {
         // 周报摘要
@@ -544,15 +539,16 @@ Be professional yet warm, encouraging, and actionable. Keep under 200 words.`;
         maxTokens = 250;
       }
 
-      // 发送请求并获取响应
+      // 发送请求并获取响应 - 优化参数
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         generationConfig: {
           maxOutputTokens: maxTokens,
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40
+          temperature: 0.5,      // 降低创造性，提高一致性
+          topP: 0.7,            // 减少候选词汇
+          topK: 20,             // 进一步限制候选词汇
+          candidateCount: 1     // 只生成一个候选结果
         }
       });
 
