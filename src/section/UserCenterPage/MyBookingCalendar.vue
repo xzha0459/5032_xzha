@@ -69,7 +69,6 @@ const calendarOptions = computed(() => ({
 // Calendar events computed property
 const calendarEvents = computed(() => {
   return bookings.value
-    .filter(booking => booking.status !== 'cancelled') // 过滤掉已取消的预约
     .map(booking => {
       const activity = getActivityById(booking.activityId)
       if (!activity) return null

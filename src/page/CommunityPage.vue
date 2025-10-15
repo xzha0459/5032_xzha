@@ -14,37 +14,12 @@
 
       <!-- Community content -->
       <div v-else-if="isAuthenticated">
-        <!-- Navigation Tabs -->
-        <div class="community-nav">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            :class="['tab-button', { active: activeTab === tab.id }]"
-            @click="activeTab = tab.id"
-          >
-            {{ tab.label }}
-          </button>
-        </div>
-
-        <!-- Tab Content -->
-        <div class="tab-content">
-          <!-- Activities List Tab -->
-          <ActivityListSection
-            v-if="activeTab === 'activities'"
-            ref="activityListRef"
-            :activities="activities"
-            @book-activity="handleBookActivity"
-          />
-
-          <!-- Calendar Tab -->
-          <ActivityCalendarSection
-            v-if="activeTab === 'calendar'"
-            :activities="activities"
-            :bookings="userBookings"
-            @book-activity="handleBookActivity"
-          />
-
-        </div>
+        <!-- Activities List Only -->
+        <ActivityListSection
+          ref="activityListRef"
+          :activities="activities"
+          @book-activity="handleBookActivity"
+        />
       </div>
 
       <!-- Not authenticated -->
@@ -94,18 +69,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAuth } from '@/utils/useAuth.js'
 import { getDocs, collection, addDoc, updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 import ActivityListSection from '@/section/CommunityPage/ActivityListSection.vue'
-import ActivityCalendarSection from '@/section/CommunityPage/ActivityCalendarSection.vue'
 
 // Use auth composable
 const { isAuthenticated, isLoading: authLoading, user } = useAuth()
 
 // State
-const activeTab = ref('activities')
 const activities = ref([])
 const userBookings = ref([])
 const selectedActivity = ref(null)
@@ -114,13 +87,7 @@ const isBooking = ref(false)
 const bookingNotes = ref('')
 const activityListRef = ref(null)
 
-// Tab configuration
-const tabs = computed(() => {
-  return [
-    { id: 'activities', label: 'Activities' },
-    { id: 'calendar', label: 'Calendar' }
-  ]
-})
+// 已移除社区导航
 
 // Event handlers
 const handleBookActivity = (activity) => {
@@ -170,6 +137,26 @@ const confirmBooking = async () => {
 
     if (activity.currentParticipants >= activity.maxParticipants) {
       alert('This activity is full.')
+      return
+    }
+
+    // 检查与用户现有预订是否时间冲突或重复
+    const hasConflict = (() => {
+      const activityStart = new Date(activity.date)
+      const activityEnd = new Date(activityStart.getTime() + (activity.duration * 60000))
+      return userBookings.value.some(b => {
+        if (b.status === 'cancelled') return false
+        if (b.activityId === activity.id) return true // 同一活动重复预订
+        const bookedActivity = activities.value.find(a => a.id === b.activityId)
+        if (!bookedActivity) return false
+        const bookedStart = new Date(bookedActivity.date)
+        const bookedEnd = new Date(bookedStart.getTime() + (bookedActivity.duration * 60000))
+        return activityStart < bookedEnd && activityEnd > bookedStart
+      })
+    })()
+
+    if (hasConflict) {
+      alert('This booking conflicts with one of your existing bookings.')
       return
     }
 
@@ -261,40 +248,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.community-nav {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.tab-button {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.tab-button:hover {
-  color: var(--forest-medium);
-  background: var(--forest-light);
-}
-
-.tab-button.active {
-  color: var(--forest-deep);
-  border-bottom-color: var(--forest-deep);
-  background: var(--forest-light);
-}
-
-.tab-content {
-  min-height: 400px;
-}
-
+/* navigation removed */
 .not-authenticated {
   display: flex;
   justify-content: center;
