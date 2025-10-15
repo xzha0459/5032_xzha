@@ -60,11 +60,6 @@
                 <span>Free</span>
               </div>
             </div>
-
-            <div class="card-note" v-if="booking.notes">
-              <h4>Your Notes:</h4>
-              <p>{{ booking.notes }}</p>
-            </div>
         </div>
 
         <div class="card-footer">
@@ -292,7 +287,26 @@ const formatActivityTime = (activityId) => {
 }
 
 const formatBookingDate = (date) => {
-  return new Date(date).toLocaleDateString('en-US', {
+  if (!date) return 'Unknown Date'
+
+  // Handle different date formats
+  let dateObj
+  if (typeof date === 'string') {
+    // Try parsing as ISO string first
+    dateObj = new Date(date)
+  } else if (date.toDate && typeof date.toDate === 'function') {
+    // Handle Firestore Timestamp
+    dateObj = date.toDate()
+  } else {
+    dateObj = new Date(date)
+  }
+
+  if (isNaN(dateObj.getTime())) {
+    console.warn('Invalid date format:', date)
+    return 'Invalid Date'
+  }
+
+  return dateObj.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'

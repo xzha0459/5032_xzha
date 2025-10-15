@@ -455,17 +455,6 @@
             ></textarea>
           </div>
 
-          <div class="form-group">
-            <label for="activity-requirements">Requirements (one per line)</label>
-            <textarea
-              id="activity-requirements"
-              v-model="activityRequirementsText"
-              rows="3"
-              class="input"
-              placeholder="Enter requirements, one per line"
-            ></textarea>
-          </div>
-
           <div class="modal-footer">
             <button type="button" class="btn action" @click="closeActivityModal">Cancel</button>
             <button type="submit" class="btn action primary" :disabled="isSavingActivity">
@@ -679,7 +668,6 @@ const activityForm = ref({
   description: '',
   currentParticipants: 0
 })
-const activityRequirementsText = ref('')
 
 // Delete confirmation modal state
 const showDeleteModal = ref(false)
@@ -1051,7 +1039,6 @@ const openActivityModal = (row) => {
       description: row.description || '',
       currentParticipants: row.currentParticipants || 0
     }
-    activityRequirementsText.value = row.requirements ? row.requirements.join('\n') : ''
   } else {
     // Create mode - reset form
     activityForm.value = {
@@ -1069,7 +1056,6 @@ const openActivityModal = (row) => {
       description: '',
       currentParticipants: 0
     }
-    activityRequirementsText.value = ''
   }
 
   showActivityModal.value = true
@@ -1145,12 +1131,6 @@ const submitActivity = async () => {
   isSavingActivity.value = true
 
   try {
-    // Parse requirements
-    const requirements = activityRequirementsText.value
-      .split('\n')
-      .map(req => req.trim())
-      .filter(req => req.length > 0)
-
     // Combine date and time
     const dateTime = new Date(`${activityForm.value.date}T${activityForm.value.time}`)
 
@@ -1166,8 +1146,7 @@ const submitActivity = async () => {
       instructor: activityForm.value.instructor.trim(),
       price: parseFloat(activityForm.value.price) || 0,
       status: activityForm.value.status,
-      description: activityForm.value.description.trim(),
-      requirements
+      description: activityForm.value.description.trim()
     }
 
     await setDoc(doc(db, 'activities', payload.id), payload, { merge: true })

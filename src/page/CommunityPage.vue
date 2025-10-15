@@ -45,17 +45,6 @@
           <p>Date: {{ new Date(selectedActivity.date).toLocaleDateString() }}</p>
           <p>Time: {{ new Date(selectedActivity.date).toLocaleTimeString() }}</p>
           <p>Price: {{ selectedActivity.price > 0 ? '$' + selectedActivity.price : 'Free' }}</p>
-
-          <div class="form-group">
-            <label for="booking-notes">Notes (optional):</label>
-            <textarea
-              id="booking-notes"
-              v-model="bookingNotes"
-              class="input"
-              placeholder="Any special requirements or notes..."
-              rows="3"
-            ></textarea>
-          </div>
         </div>
         <div class="modal-footer">
           <button class="btn action" @click="closeBookingModal" :disabled="isBooking">Cancel</button>
@@ -84,7 +73,6 @@ const userBookings = ref([])
 const selectedActivity = ref(null)
 const showBookingModal = ref(false)
 const isBooking = ref(false)
-const bookingNotes = ref('')
 const activityListRef = ref(null)
 
 // 已移除社区导航
@@ -98,7 +86,6 @@ const handleBookActivity = (activity) => {
 const closeBookingModal = () => {
   showBookingModal.value = false
   selectedActivity.value = null
-  bookingNotes.value = ''
   isBooking.value = false
   // Close activity details modal if it's open
   if (activityListRef.value && activityListRef.value.closeActivityDetails) {
@@ -166,10 +153,9 @@ const confirmBooking = async () => {
       userEmail: user.value.email,
       activityId: activity.id,
       activityTitle: activity.title,
-      bookingDate: new Date(),
-      activityDate: activityDate,
+      bookingDate: new Date().toISOString(),
+      activityDate: activityDate.toISOString(),
       status: 'confirmed',
-      notes: bookingNotes.value.trim(),
       price: activity.price
     }
 

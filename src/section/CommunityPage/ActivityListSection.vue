@@ -76,15 +76,6 @@
               <span>{{ activity.price > 0 ? '$' + activity.price : 'Free' }}</span>
             </div>
           </div>
-
-          <div class="card-note" v-if="activity.requirements && activity.requirements.length > 0">
-            <h4>Requirements:</h4>
-            <ul>
-              <li v-for="requirement in activity.requirements" :key="requirement">
-                {{ requirement }}
-              </li>
-            </ul>
-          </div>
         </div>
 
         <div class="card-footer">
@@ -177,13 +168,6 @@
               {{ selectedActivity.price > 0 ? '$' + selectedActivity.price : 'Free' }}
             </li>
           </ul>
-
-          <div class="modal-rating" v-if="selectedActivity.requirements && selectedActivity.requirements.length > 0">
-            <p class="modal-description">Requirements:</p>
-            <ul class="modal-list">
-              <li v-for="requirement in selectedActivity.requirements" :key="requirement">{{ requirement }}</li>
-            </ul>
-          </div>
         </div>
       </div>
     </div>

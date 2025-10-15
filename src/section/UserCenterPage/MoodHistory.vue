@@ -85,7 +85,7 @@
 
         <div class="entries-list">
           <div
-            v-for="entry in filteredEntries"
+            v-for="entry in paginatedEntries"
             :key="entry.id"
             class="entry-card"
           >
@@ -105,11 +105,11 @@
           </div>
         </div>
 
-        <!-- Load More -->
-        <div class="load-more" v-if="hasMoreEntries">
-          <button class="btn primary" @click="loadMoreEntries" :disabled="loading">
-            {{ loading ? 'Loading...' : 'Load More' }}
-          </button>
+        <!-- Pagination -->
+        <div class="pagination" v-if="entriesTotalPages > 1">
+          <button class="btn action" :disabled="entriesPage === 1" @click="entriesPage--">Prev</button>
+          <span class="page-info">{{ entriesPage }} / {{ entriesTotalPages }}</span>
+          <button class="btn action" :disabled="entriesPage === entriesTotalPages" @click="entriesPage++">Next</button>
         </div>
       </div>
 
@@ -118,8 +118,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { collection, query, where, orderBy, limit, getDocs, startAfter } from 'firebase/firestore'
+import { ref, computed, onMounted, watch } from 'vue'
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 import { useAuth } from '@/utils/useAuth.js'
 
@@ -129,8 +129,8 @@ const { user } = useAuth()
 const moodEntries = ref([])
 const selectedFilter = ref('all')
 const loading = ref(false)
-const hasMoreEntries = ref(true)
-const lastDoc = ref(null)
+const entriesPage = ref(1)
+const entriesPerPage = 5
 
 // Mood mapping
 const moodMap = {
@@ -228,107 +228,48 @@ const filteredEntries = computed(() => {
   return moodEntries.value.filter(entry => entry.mood === selectedFilter.value)
 })
 
+// Pagination computed properties
+const entriesTotalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredEntries.value.length / entriesPerPage))
+})
+
+const paginatedEntries = computed(() => {
+  const start = (entriesPage.value - 1) * entriesPerPage
+  const end = start + entriesPerPage
+  return filteredEntries.value.slice(start, end)
+})
+
+// Watch for filter changes to reset pagination
+watch(selectedFilter, () => {
+  entriesPage.value = 1
+})
+
 // Methods
-const loadMoodEntries = async (loadMore = false) => {
+const loadMoodEntries = async () => {
   if (!user.value) return
 
   loading.value = true
 
   try {
-    // Try the optimized query first
-    let q = query(
+    // Load all entries for pagination
+    const q = query(
       collection(db, 'moodEntries'),
       where('userId', '==', user.value.uid),
-      orderBy('createdAt', 'desc'),
-      limit(20)
+      orderBy('createdAt', 'desc')
     )
 
-    if (loadMore && lastDoc.value) {
-      q = query(q, startAfter(lastDoc.value))
-    }
-
     const snapshot = await getDocs(q)
-    const newEntries = snapshot.docs.map(doc => ({
+    moodEntries.value = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }))
 
-    if (loadMore) {
-      moodEntries.value.push(...newEntries)
-    } else {
-      moodEntries.value = newEntries
-    }
-
-    hasMoreEntries.value = newEntries.length === 20
-    if (snapshot.docs.length > 0) {
-      lastDoc.value = snapshot.docs[snapshot.docs.length - 1]
-    }
-
   } catch (error) {
     console.error('Error loading mood entries:', error)
-
-    // If index error, try fallback query
-    if (error.message.includes('index') || error.message.includes('requires an index')) {
-      console.log('Trying fallback query without orderBy...')
-      try {
-        const fallbackQuery = query(
-          collection(db, 'moodEntries'),
-          where('userId', '==', user.value.uid),
-          limit(20)
-        )
-
-        const snapshot = await getDocs(fallbackQuery)
-        const newEntries = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-
-        // Sort in JavaScript
-        newEntries.sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.timestamp?.toDate?.() || 0)
-          const dateB = new Date(b.createdAt || b.timestamp?.toDate?.() || 0)
-          return dateB - dateA
-        })
-
-        if (loadMore) {
-          moodEntries.value.push(...newEntries)
-        } else {
-          moodEntries.value = newEntries
-        }
-
-        hasMoreEntries.value = newEntries.length === 20
-        if (snapshot.docs.length > 0) {
-          lastDoc.value = snapshot.docs[snapshot.docs.length - 1]
-        }
-
-        console.log('Fallback query successful')
-        return
-      } catch (fallbackError) {
-        console.error('Fallback query also failed:', fallbackError)
-      }
-    }
-
-    // Retry logic for network errors
-    if (error.message.includes('network') ||
-        error.message.includes('connection') ||
-        error.message.includes('400') ||
-        error.message.includes('500')) {
-      console.log('Network error detected, retrying in 2 seconds...')
-      setTimeout(() => {
-        loadMoodEntries(loadMore)
-      }, 2000)
-      return
-    }
-
-    // Show user-friendly error message
-    alert('Failed to load mood entries. Please check your connection and try again.')
+    moodEntries.value = []
   } finally {
     loading.value = false
   }
-}
-
-const loadMoreEntries = () => {
-  loadMoodEntries(true)
 }
 
 const getMoodEmoji = (mood) => {
