@@ -59,10 +59,15 @@ const logout = async () => {
 }
 
 // Initialize auth state listener
-const initializeAuth = () => {
-  isLoading.value = true
+let isInitialized = false
 
-  const unsubscribe = onAuthStateChanged(auth, async (userData) => {
+const initializeAuth = () => {
+  if (isInitialized) return
+
+  isLoading.value = true
+  isInitialized = true
+
+  onAuthStateChanged(auth, async (userData) => {
     try {
       user.value = userData
       if (userData) {
@@ -77,22 +82,19 @@ const initializeAuth = () => {
       isLoading.value = false
     }
   })
-
-  return unsubscribe
 }
+
+// Initialize immediately
+initializeAuth()
 
 // Composable function
 export function useAuth() {
-  let unsubscribe = null
-
   onMounted(() => {
-    unsubscribe = initializeAuth()
+    // Auth is already initialized globally
   })
 
   onUnmounted(() => {
-    if (unsubscribe) {
-      unsubscribe()
-    }
+    // Don't unsubscribe here as other components might still need it
   })
 
   return {

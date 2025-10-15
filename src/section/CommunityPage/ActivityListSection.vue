@@ -1,8 +1,9 @@
 <template>
   <div class="activity-list-section">
     <div class="section-header">
-      <h2 class="section-title">Community Activities</h2>
-      <div class="section-controls">
+      <h1 class="section-title">Community Activities</h1>
+
+      <div class="filter-section">
         <div class="filter-group">
           <label for="typeFilter" class="filter-label">Filter by Type:</label>
           <select id="typeFilter" v-model="selectedType" class="filter">
@@ -19,10 +20,11 @@
         <div class="filter-group">
           <label for="statusFilter" class="filter-label">Status:</label>
           <select id="statusFilter" v-model="selectedStatus" class="filter">
-            <option value="all">All</option>
-            <option value="active">Available</option>
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
             <option value="full">Full</option>
-            <option value="upcoming">Upcoming</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="past">Past</option>
           </select>
         </div>
       </div>
@@ -126,11 +128,71 @@
         Next
       </button>
     </div>
+
+    <!-- Activity Details Modal -->
+    <div class="modal-overlay" v-if="hasSelectedActivity()" @click="closeActivityDetails" role="presentation">
+      <div class="modal" @click.stop ref="activityModal"
+           role="dialog" aria-modal="true" :aria-labelledby="'activity-modal-title'"
+           @keydown="handleModalKeydown">
+        <div class="modal-header">
+          <h2 class="modal-title" :id="'activity-modal-title'">{{ selectedActivity?.title }}</h2>
+          <button class="close-button" ref="activityCloseBtn" @click="closeActivityDetails" aria-label="Close modal">×</button>
+        </div>
+
+        <div class="modal-body" v-if="selectedActivity">
+          <div class="modal-tags">
+            <span class="booking-tag" :class="selectedActivity.type">
+              {{ getTypeLabel(selectedActivity.type) }}
+            </span>
+            <span class="booking-tag" :class="getStatusClass(selectedActivity)">
+              {{ getStatusText(selectedActivity) }}
+            </span>
+          </div>
+
+          <p class="modal-description">{{ selectedActivity.description }}</p>
+
+          <ul class="modal-list">
+            <li>
+              <strong>Date:</strong>
+              {{ formatDate(selectedActivity.date) }}
+            </li>
+            <li>
+              <strong>Time:</strong>
+              {{ formatTime(selectedActivity.date) }} ({{ selectedActivity.duration }}min)
+            </li>
+            <li>
+              <strong>Location:</strong>
+              {{ selectedActivity.location }}
+            </li>
+            <li>
+              <strong>Instructor:</strong>
+              {{ selectedActivity.instructor }}
+            </li>
+            <li>
+              <strong>Participants:</strong>
+              {{ selectedActivity.currentParticipants }}/{{ selectedActivity.maxParticipants }} participants
+            </li>
+            <li>
+              <strong>Price:</strong>
+              {{ selectedActivity.price > 0 ? '$' + selectedActivity.price : 'Free' }}
+            </li>
+          </ul>
+
+          <div class="modal-rating" v-if="selectedActivity.requirements && selectedActivity.requirements.length > 0">
+            <p class="modal-description">Requirements:</p>
+            <ul class="modal-list">
+              <li v-for="requirement in selectedActivity.requirements" :key="requirement">{{ requirement }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
+import { useAuth } from '@/utils/useAuth'
 
 const props = defineProps({
   activities: {
@@ -142,11 +204,19 @@ const props = defineProps({
 
 const emit = defineEmits(['activity-selected', 'book-activity'])
 
+// Get user role from auth
+const { isAdminUser } = useAuth()
+
 // State
 const selectedType = ref('all')
 const selectedStatus = ref('all')
 const currentPage = ref(1)
 const itemsPerPage = 6
+const selectedActivity = ref(null)
+const showActivityDetails = ref(false)
+const lastFocusedBeforeModal = ref(null)
+const activityModal = ref(null)
+const activityCloseBtn = ref(null)
 
 // Computed
 const filteredActivities = computed(() => {
@@ -160,13 +230,22 @@ const filteredActivities = computed(() => {
   // Filter by status
   if (selectedStatus.value !== 'all') {
     filtered = filtered.filter(activity => {
+      const now = new Date()
+      const activityDate = new Date(activity.date)
+
       switch (selectedStatus.value) {
         case 'active':
-          return activity.status === 'active' && activity.currentParticipants < activity.maxParticipants
+          return activity.status === 'active' &&
+                 activity.currentParticipants < activity.maxParticipants &&
+                 activityDate >= now
         case 'full':
-          return activity.status === 'active' && activity.currentParticipants >= activity.maxParticipants
-        case 'upcoming':
-          return activity.date > new Date()
+          return activity.status === 'active' &&
+                 activity.currentParticipants >= activity.maxParticipants &&
+                 activityDate >= now
+        case 'cancelled':
+          return activity.status === 'cancelled'
+        case 'past':
+          return activityDate < now
         default:
           return true
       }
@@ -221,12 +300,22 @@ const getStatusText = (activity) => {
 }
 
 const canBookActivity = (activity) => {
+  // Admins cannot book activities
+  if (isAdminUser.value) {
+    return false
+  }
+
   return activity.status === 'active' &&
          activity.currentParticipants < activity.maxParticipants &&
          activity.date > new Date()
 }
 
 const getBookingButtonText = (activity) => {
+  // Show different text for admins
+  if (isAdminUser.value) {
+    return 'Admin View Only'
+  }
+
   if (activity.status !== 'active') return 'Cancelled'
   if (activity.currentParticipants >= activity.maxParticipants) return 'Full'
   if (activity.date < new Date()) return 'Past Event'
@@ -250,58 +339,75 @@ const formatTime = (date) => {
 }
 
 const selectActivity = (activity) => {
-  emit('activity-selected', activity)
+  // 记录触发元素以便关闭后还原焦点
+  lastFocusedBeforeModal.value = document.activeElement
+  selectedActivity.value = activity
+  showActivityDetails.value = true
+  nextTick(() => {
+    // 将焦点移到关闭按钮
+    const btn = activityCloseBtn.value
+    if (btn && btn.focus) btn.focus()
+  })
+}
+
+const closeActivityDetails = () => {
+  showActivityDetails.value = false
+  selectedActivity.value = null
+  // 关闭后把焦点还原到触发元素
+  if (lastFocusedBeforeModal.value && lastFocusedBeforeModal.value.focus) {
+    lastFocusedBeforeModal.value.focus()
+  }
+}
+
+const hasSelectedActivity = () => {
+  return selectedActivity.value !== null
+}
+
+// 焦点陷阱与ESC
+const handleModalKeydown = (e) => {
+  if (e.key === 'Escape') {
+    closeActivityDetails()
+    return
+  }
+  if (e.key !== 'Tab') return
+  const modal = activityModal.value
+  if (!modal) return
+  const focusable = modal.querySelectorAll(
+    'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+  )
+  if (!focusable.length) return
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  const active = document.activeElement
+  if (e.shiftKey && active === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && active === last) {
+    e.preventDefault();
+    first.focus();
+  }
 }
 
 const bookActivity = (activity) => {
+  // Prevent admins from booking
+  if (isAdminUser.value) {
+    return
+  }
+
   if (canBookActivity(activity)) {
     emit('book-activity', activity)
+    closeActivityDetails()
   }
 }
 
 const viewDetails = (activity) => {
-  emit('activity-selected', activity)
+  selectActivity(activity)
 }
 </script>
 
 <style scoped>
 .activity-list-section {
   padding: 0;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.section-controls {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.filter-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.filter {
-  padding: 0.5rem;
-  border: 1px solid var(--border-light);
-  border-radius: 4px;
-  background: white;
-  font-size: 0.875rem;
 }
 
 .activities-grid {
@@ -328,18 +434,12 @@ const viewDetails = (activity) => {
   margin-bottom: 1rem;
 }
 
-
-
-
-
 .card-description {
   color: var(--text-secondary);
   margin-bottom: 1rem;
   line-height: 1.5;
 }
 
-
-/* removed local .activity-requirements styles; using global .card-note */
 .no-activities {
   text-align: center;
   padding: 3rem 1rem;
@@ -361,15 +461,6 @@ const viewDetails = (activity) => {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .section-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .section-controls {
-    justify-content: center;
-  }
-
   .activities-grid {
     grid-template-columns: 1fr;
   }

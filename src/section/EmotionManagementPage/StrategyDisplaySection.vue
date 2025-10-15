@@ -1,7 +1,7 @@
 <template>
   <div class="strategy-display-section">
+    <div class="section-header">
       <h1 class="section-title">Emotion Management Strategies</h1>
-
       <div class="search-section">
         <input
           v-model="searchQuery"
@@ -10,8 +10,7 @@
           class="search"
         />
       </div>
-
-      <div class="filters-section">
+      <div class="filter-section">
         <div class="filter-group">
           <label for="categoryFilter" class="filter-label">Sort by Category:</label>
           <select
@@ -51,6 +50,9 @@
           />
         </div>
       </div>
+    </div>
+
+
 
       <div class="strategies-section">
         <div class="strategies-grid" v-if="paginatedStrategies.length > 0">
@@ -105,14 +107,24 @@
             </div>
 
             <div class="modal-body">
-              <div class="modal-tags">
-                <span
-                  v-for="tag in selectedStrategy.tags"
-                  :key="tag"
-                  class="tag"
-                >
-                  {{ tag }}
-                </span>
+              <div class="modal-header-info">
+                <div class="modal-tags">
+                  <span
+                    v-for="tag in selectedStrategy.tags"
+                    :key="tag"
+                    class="tag"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+
+                <div class="rating-average" v-if="getTotalRatings(selectedStrategy.id) > 0">
+                  Average: {{ getAverageRating(selectedStrategy.id).toFixed(1) }}⭐
+                  ({{ getTotalRatings(selectedStrategy.id) }} ratings)
+                </div>
+                <div class="rating-average" v-else>
+                  No ratings yet
+                </div>
               </div>
 
               <p class="modal-description">{{ selectedStrategy.description }}</p>
@@ -125,25 +137,20 @@
               </ul>
 
               <div class="modal-rating">
-                <div class="rating-average" v-if="getTotalRatings(selectedStrategy.id) > 0">
-                  Average: {{ getAverageRating(selectedStrategy.id).toFixed(1) }}⭐
-                  ({{ getTotalRatings(selectedStrategy.id) }} ratings)
-                </div>
-                <div class="rating-average" v-else>
-                  No ratings yet
-                </div>
 
                 <div class="rating-user" v-if="isAuthenticated && !isAdminUser">
-                  <div class="rating-label">Your rating:</div>
-                  <div class="rating-stars">
-                    <span
-                      v-for="star in renderStars(selectedStrategy.id)"
-                      :key="star.value"
-                      @click="setStrategyRating(selectedStrategy.id, star.value)"
-                      :class="['star', { 'filled': star.filled }]"
-                    >
-                      ★
-                    </span>
+                  <div class="rating-group">
+                    <div class="rating-label">Your rating:</div>
+                    <div class="rating-stars">
+                      <span
+                        v-for="star in renderStars(selectedStrategy.id)"
+                        :key="star.value"
+                        @click="setStrategyRating(selectedStrategy.id, star.value)"
+                        :class="['star', { 'filled': star.filled }]"
+                      >
+                        ★
+                      </span>
+                    </div>
                   </div>
                   <div class="rating-text" v-if="getStrategyRating(selectedStrategy.id) > 0">
                     {{ getStrategyRating(selectedStrategy.id) === 5 ? 'Highly Recommended!' : `${getStrategyRating(selectedStrategy.id)} star${getStrategyRating(selectedStrategy.id) > 1 ? 's' : ''}` }}
@@ -152,15 +159,17 @@
                 </div>
 
                 <div class="rating-readonly" v-if="!isAuthenticated">
-                  <div class="rating-label">Overall Rating:</div>
-                  <div class="rating-stars">
-                    <span
-                      v-for="star in renderStars(selectedStrategy.id)"
-                      :key="star.value"
-                      :class="['star', 'readonly', { 'filled': star.filled }]"
-                    >
-                      ★
-                    </span>
+                  <div class="rating-group">
+                    <div class="rating-label">Overall Rating:</div>
+                    <div class="rating-stars">
+                      <span
+                        v-for="star in renderStars(selectedStrategy.id)"
+                        :key="star.value"
+                        :class="['star', 'readonly', { 'filled': star.filled }]"
+                      >
+                        ★
+                      </span>
+                    </div>
                   </div>
                   <div class="rating-text">
                     Login to rate this strategy
@@ -514,14 +523,7 @@ export default {
 }
 
 /* Filter Styles */
-.filters-section {
-  margin: 0 auto 2rem auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4rem;
-  flex-wrap: wrap;
-}
+
 
 .export-button-group {
   display: flex;
@@ -541,24 +543,32 @@ export default {
 }
 
 /* Modal styles */
+.modal-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 .modal-rating {
   text-align: center;
-  padding: 1rem;
+  padding: 0.5rem 0;
   border-radius: 12px;
   border: 1px solid var(--border-light);
 }
 
 .rating-average,
 .rating-readonly {
-  margin-bottom: 1rem;
-  padding: 1rem;
-  border-radius: 8px;
-  color: var(--text-primary);
+  padding: 0.5rem;
   font-weight: 600;
 }
 
 .rating-average {
-  border: 1px solid rgba(122, 139, 122, 0.2);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .rating-readonly {
@@ -566,18 +576,23 @@ export default {
   border: 1px solid rgba(0, 123, 255, 0.2);
 }
 
+.rating-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .rating-label {
   color: var(--text-primary);
   font-size: 1rem;
-  margin-bottom: 1rem;
+  margin: 0;
   font-weight: 500;
+  margin-right: 1rem;
 }
 
 .rating-stars {
   display: flex;
-  justify-content: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
 .star {
@@ -619,7 +634,6 @@ export default {
   color: var(--forest-medium);
   font-weight: 400;
   font-style: normal;
-  margin-top: 0.5rem;
   text-align: center;
 }
 

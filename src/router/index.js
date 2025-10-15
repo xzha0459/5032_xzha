@@ -67,4 +67,20 @@ const router = createRouter({
   routes,
 })
 
+// Route guard to prevent admin from accessing user center
+router.beforeEach((to, from, next) => {
+  // Import auth state dynamically to avoid circular dependency
+  import('@/utils/useAuth.js').then(({ userRole }) => {
+    // If admin tries to access user center, redirect to admin panel
+    if (to.name === 'UserCenter' && userRole.value === 'admin') {
+      next({ name: 'Admin' })
+    } else {
+      next()
+    }
+  }).catch(() => {
+    // If there's an error importing auth, just continue
+    next()
+  })
+})
+
 export default router

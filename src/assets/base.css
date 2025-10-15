@@ -154,6 +154,10 @@ h6 { font-size: 0.4rem; }
 }
 
 /* Section Styles */
+.section-header {
+  background: transparent;
+}
+
 .section-title {
   font-weight: 600;
   margin: 1rem 0;
@@ -524,6 +528,7 @@ textarea.input {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-right: 0.5rem;
 }
 
 .booking-tag.confirmed {
@@ -649,7 +654,6 @@ textarea.input {
 
 .modal-body {
   padding: 1rem 0 0 0;
-
 }
 
 .modal-body p {
@@ -678,7 +682,7 @@ textarea.input {
   color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
-  margin: 1rem 0;
+  margin: 0.8rem 0;
 }
 
 .modal-list {
@@ -689,7 +693,7 @@ textarea.input {
 }
 
 .modal-list li {
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -777,6 +781,15 @@ textarea.input {
   font-weight: 500;
   color: var(--text-primary);
   transition: all 0.3s ease;
+}
+
+.filter-section {
+  margin: 0 auto 2rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rem;
+  flex-wrap: wrap;
 }
 
 .filter {

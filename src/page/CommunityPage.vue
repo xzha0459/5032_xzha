@@ -1,11 +1,11 @@
 <template>
   <div class="page">
-    <div class="user-page-header">
-      <h1 class="user-page-title">Community</h1>
-      <p class="user-page-subtitle">Join our community activities and connect with others</p>
+    <div class="page-header">
+      <h1 class="page-title">Community</h1>
+      <p class="page-subtitle">Join our community activities and connect with others</p>
     </div>
 
-    <div class="user-page-content">
+    <div class="page-content">
       <!-- Loading state for auth -->
       <div v-if="authLoading" class="loading-state">
         <div class="spinner"></div>
@@ -32,7 +32,6 @@
           <ActivityListSection
             v-if="activeTab === 'activities'"
             :activities="activities"
-            @activity-selected="handleActivitySelected"
             @book-activity="handleBookActivity"
           />
 
@@ -57,74 +56,6 @@
       </div>
     </div>
 
-    <!-- Activity Details Modal -->
-    <div v-if="showActivityDetails" class="modal-overlay" @click="closeActivityDetails">
-      <div class="modal large-modal" @click.stop>
-        <div class="modal-header">
-          <h2>{{ selectedActivity?.title }}</h2>
-          <button class="close-button" @click="closeActivityDetails">×</button>
-        </div>
-        <div class="modal-body" v-if="selectedActivity">
-          <div class="activity-details">
-            <div class="detail-section">
-              <h3>Description</h3>
-              <p>{{ selectedActivity.description }}</p>
-            </div>
-
-            <div class="detail-section">
-              <h3>Activity Information</h3>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Type:</span>
-                  <span class="detail-value">{{ selectedActivity.type }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Date:</span>
-                  <span class="detail-value">{{ new Date(selectedActivity.date).toLocaleDateString() }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Time:</span>
-                  <span class="detail-value">{{ new Date(selectedActivity.date).toLocaleTimeString() }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Duration:</span>
-                  <span class="detail-value">{{ selectedActivity.duration }} minutes</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Location:</span>
-                  <span class="detail-value">{{ selectedActivity.location }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Instructor:</span>
-                  <span class="detail-value">{{ selectedActivity.instructor }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Participants:</span>
-                  <span class="detail-value">{{ selectedActivity.currentParticipants }}/{{ selectedActivity.maxParticipants }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Price:</span>
-                  <span class="detail-value">{{ selectedActivity.price > 0 ? '$' + selectedActivity.price : 'Free' }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="detail-section" v-if="selectedActivity.requirements && selectedActivity.requirements.length > 0">
-              <h3>Requirements</h3>
-              <ul>
-                <li v-for="requirement in selectedActivity.requirements" :key="requirement">{{ requirement }}</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn action" @click="closeActivityDetails">Close</button>
-          <button class="btn primary" @click="handleBookActivity(selectedActivity)" v-if="selectedActivity">
-            Book This Activity
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- Booking Modal -->
     <div v-if="showBookingModal" class="modal-overlay" @click="closeBookingModal">
@@ -162,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useAuth } from '@/utils/useAuth.js'
 import { getDocs, collection, addDoc, updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/firebase.js'
@@ -177,7 +108,6 @@ const activeTab = ref('activities')
 const activities = ref([])
 const userBookings = ref([])
 const selectedActivity = ref(null)
-const showActivityDetails = ref(false)
 const showBookingModal = ref(false)
 const isBooking = ref(false)
 const bookingNotes = ref('')
@@ -191,19 +121,9 @@ const tabs = computed(() => {
 })
 
 // Event handlers
-const handleActivitySelected = (activity) => {
-  selectedActivity.value = activity
-  showActivityDetails.value = true
-}
-
 const handleBookActivity = (activity) => {
   selectedActivity.value = activity
   showBookingModal.value = true
-}
-
-const closeActivityDetails = () => {
-  showActivityDetails.value = false
-  selectedActivity.value = null
 }
 
 const closeBookingModal = () => {
@@ -321,11 +241,16 @@ const loadUserBookings = async () => {
 }
 
 
-onMounted(() => {
-  if (isAuthenticated.value) {
+// Watch for auth state changes
+watch([isAuthenticated, authLoading], ([authenticated, loading]) => {
+  if (!loading && authenticated) {
     loadActivities()
     loadUserBookings()
   }
+}, { immediate: true })
+
+onMounted(() => {
+  // Component mounted
 })
 </script>
 
@@ -384,6 +309,36 @@ onMounted(() => {
 .not-authenticated .card p {
   margin-bottom: 1.5rem;
   color: var(--text-secondary);
+}
+
+/* Loading state styles */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--forest-light);
+  border-top: 4px solid var(--forest-dark);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  color: var(--text-secondary);
+  margin: 0.5rem 0;
 }
 
 /* Responsive Design */

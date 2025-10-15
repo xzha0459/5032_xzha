@@ -36,10 +36,10 @@ export const isAdmin = (userRole) => {
 /**
  * Check if user has user permissions (basic access)
  * @param {string} userRole - The user's current role
- * @returns {boolean} - True if user has at least user role
+ * @returns {boolean} - True if user has user role (excludes admin)
  */
 export const isUser = (userRole) => {
-  return userRole === ROLES.USER || userRole === ROLES.ADMIN
+  return userRole === ROLES.USER
 }
 
 /**
