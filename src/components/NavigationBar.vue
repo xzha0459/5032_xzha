@@ -23,11 +23,10 @@
 
       <!-- Desktop Navigation Items -->
       <div class="nav-items desktop-nav">
-        <button @click="goToHome" class="nav-link">Home</button>
+        <button @click="goToMoodDiary" class="nav-link">Mood Diary</button>
         <button @click="goToWellbeing" class="nav-link">Wellbeing</button>
+        <button @click="goToCommunity" class="nav-link">Community</button>
         <button @click="goToMap" class="nav-link">Find Support</button>
-        <button v-if="user" @click="goToMoodDiary" class="nav-link">Mood Diary</button>
-        <button v-if="user" @click="goToCommunity" class="nav-link">Community</button>
       </div>
 
       <!-- Desktop Right side content -->
@@ -73,30 +72,25 @@
       <div class="mobile-nav-content">
         <!-- Navigation Links -->
         <div class="mobile-nav-section">
-          <button @click="() => { goToHome(); closeMobileMenu(); }"
+          <button @click="() => { goToMoodDiary(); closeMobileMenu(); }"
                   class="mobile-nav-link"
-                  :class="{ 'active': isCurrentRoute('Home') }">
-            Home
+                  :class="{ 'active': isCurrentRoute('MoodDiary') }">
+            Mood Diary
           </button>
           <button @click="() => { goToWellbeing(); closeMobileMenu(); }"
                   class="mobile-nav-link"
                   :class="{ 'active': isCurrentRoute('Wellbeing') }">
             Wellbeing
           </button>
+          <button @click="() => { goToCommunity(); closeMobileMenu(); }"
+                  class="mobile-nav-link"
+                  :class="{ 'active': isCurrentRoute('Community') }">
+            Community
+          </button>
           <button @click="() => { goToMap(); closeMobileMenu(); }"
                   class="mobile-nav-link"
                   :class="{ 'active': isCurrentRoute('Map') }">
             Find Support
-          </button>
-          <button v-if="user" @click="() => { goToMoodDiary(); closeMobileMenu(); }"
-                  class="mobile-nav-link"
-                  :class="{ 'active': isCurrentRoute('MoodDiary') }">
-            Mood Diary
-          </button>
-          <button v-if="user" @click="() => { goToCommunity(); closeMobileMenu(); }"
-                  class="mobile-nav-link"
-                  :class="{ 'active': isCurrentRoute('Community') }">
-            Community
           </button>
         </div>
 
@@ -371,7 +365,7 @@ onMounted(() => {
 .nav-container {
   max-width: 100%;
   margin: 0 auto;
-  padding: 0.6rem 8rem;
+  padding: 0.6rem 6rem;
   display: flex;
   justify-content: space-between;
   align-items: center;

@@ -3,10 +3,20 @@
     <div class="hero-content">
       <h1 class="hero-title">You're Not Alone in Your Journey</h1>
       <p class="hero-subtitle">Pay attention to mental health is essential...</p>
-      <button class="btn primary">GET STARTED</button>
+      <button class="btn primary" @click="goToMoodDiary">GET STARTED</button>
     </div>
   </section>
 </template>
+
+<script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const goToMoodDiary = () => {
+  router.push('/mood-diary')
+}
+</script>
 
 <style scoped>
 .hero-section {
