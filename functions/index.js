@@ -8,11 +8,13 @@ const cors = require('cors')({
   allowedHeaders: ['Content-Type', 'Authorization']
 });
 const axios = require('axios');
+const { GoogleGenAI } = require('@google/genai');
 
-// Configuration from .env file
+// Configuration from environment variables
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const SENDGRID_SENDER = process.env.SENDGRID_SENDER || 'hezitt0925@gmail.com';
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // 环境变量检查（部署时可能还没有设置）
 if (!SENDGRID_API_KEY) {
@@ -21,6 +23,10 @@ if (!SENDGRID_API_KEY) {
 
 if (!GOOGLE_MAPS_API_KEY) {
   console.warn('GOOGLE_MAPS_API_KEY environment variable is not set');
+}
+
+if (!GEMINI_API_KEY) {
+  console.warn('GEMINI_API_KEY environment variable is not set');
 }
 
 if (SENDGRID_API_KEY) {
@@ -361,6 +367,100 @@ exports.searchMentalHealthServices = functions.https.onRequest((req, res) => {
       return res.status(500).json({
         success: false,
         error: error.message
+      });
+    }
+  });
+});
+
+// 心理健康聊天机器人 Firebase Function
+exports.chatbot = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Only POST allowed' });
+    }
+
+    try {
+      if (!GEMINI_API_KEY) {
+        return res.status(500).json({ error: 'Gemini API key not configured' });
+      }
+
+      const { message, conversationHistory = [] } = req.body;
+
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'Message is required and must be a string' });
+      }
+
+      // 初始化 Gemini AI
+      const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
+      // 构建系统提示词
+      const systemPrompt = `You are a compassionate mental health support assistant. Your role is to:
+
+1. Provide emotional support and active listening
+2. Offer helpful coping strategies and techniques
+3. Suggest appropriate mental health resources when needed
+4. Maintain a warm, empathetic, and non-judgmental tone
+5. Encourage professional help for serious mental health concerns
+6. Focus on evidence-based mental health information
+
+Guidelines:
+- Always prioritize the user's safety and wellbeing
+- If someone expresses suicidal thoughts, encourage them to contact emergency services or crisis hotlines
+- Provide practical, actionable advice
+- Use simple, clear language
+- Be supportive and encouraging
+- Avoid giving medical diagnoses or specific treatment recommendations
+- Suggest professional help when appropriate
+
+Remember: You are here to support, not replace professional mental health care.`;
+
+      // 构建完整的对话内容
+      let fullPrompt = systemPrompt + '\n\n';
+
+      // 添加对话历史
+      conversationHistory.forEach(msg => {
+        if (msg.role === 'user') {
+          fullPrompt += `User: ${msg.content}\n`;
+        } else if (msg.role === 'assistant') {
+          fullPrompt += `Assistant: ${msg.content}\n`;
+        }
+      });
+
+      // 添加当前消息
+      fullPrompt += `User: ${message}\nAssistant:`;
+
+      // 发送请求并获取响应
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: fullPrompt
+      });
+
+      const reply = response.text;
+
+      // 返回响应
+      return res.status(200).json({
+        success: true,
+        reply: reply,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('Chatbot error:', error);
+
+      // 处理不同类型的错误
+      let errorMessage = 'Sorry, I\'m having trouble responding right now. Please try again later.';
+
+      if (error.message.includes('API key')) {
+        errorMessage = 'Service configuration error. Please contact support.';
+      } else if (error.message.includes('quota') || error.message.includes('limit')) {
+        errorMessage = 'Service temporarily unavailable due to high demand. Please try again in a few minutes.';
+      } else if (error.message.includes('safety')) {
+        errorMessage = 'I understand you\'re going through a difficult time. For your safety and wellbeing, I\'d encourage you to speak with a mental health professional or contact a crisis helpline.';
+      }
+
+      return res.status(500).json({
+        success: false,
+        error: errorMessage
       });
     }
   });

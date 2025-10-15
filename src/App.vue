@@ -1,5 +1,6 @@
 <script setup>
 import NavigationBar from '@/components/NavigationBar.vue'
+import Chatbot from '@/components/Chatbot.vue'
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
 
@@ -7,6 +8,11 @@ const route = useRoute()
 
 // 在注册页面和登录页面时不显示导航栏
 const showNavigationBar = computed(() => {
+  return route.name !== 'Register' && route.name !== 'Login'
+})
+
+// 在注册页面和登录页面时不显示聊天机器人
+const showChatbot = computed(() => {
   return route.name !== 'Register' && route.name !== 'Login'
 })
 </script>
@@ -23,6 +29,9 @@ const showNavigationBar = computed(() => {
     <main id="main-content" role="main">
       <router-view />
     </main>
+
+    <!-- 聊天机器人 - 全局可用 -->
+    <Chatbot v-if="showChatbot" />
   </div>
 </template>
 
