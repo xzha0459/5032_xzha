@@ -66,9 +66,6 @@ chmod +x deploy.sh
 After deployment, you can test the chatbot function:
 
 ```bash
-# Test locally (requires .env file)
-node test-chatbot.js
-
 # Test deployed function
 curl -X POST https://australia-southeast2-assignment-1313c.cloudfunctions.net/chatbot \
   -H "Content-Type: application/json" \
