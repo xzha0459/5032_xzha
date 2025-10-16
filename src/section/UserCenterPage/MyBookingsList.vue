@@ -1,5 +1,5 @@
 <template>
-  <div class="my-bookings-section">
+  <div class="my-bookings-list">
     <!-- Filter Tabs -->
     <div class="toggle-tabs">
       <button
@@ -26,8 +26,8 @@
           <div class="booking-date">
             Booked on {{ formatBookingDate(booking.bookingDate) }}
           </div>
-          <div class="booking-tag" :class="booking.status">
-            {{ getStatusLabel(booking.status) }}
+          <div class="booking-tag" :class="getBookingStatusClass(booking)">
+            {{ getStatusLabel(booking) }}
           </div>
         </div>
 
@@ -73,19 +73,12 @@
 
             <button
               v-if="canCancelBooking(booking)"
-              class="btn danger"
+              class="btn action danger"
               @click="cancelBooking(booking)"
             >
               Cancel Booking
             </button>
 
-            <button
-              v-if="isPastBooking(booking)"
-              class="btn primary"
-              @click="rateActivity(booking)"
-            >
-              Rate Activity
-            </button>
           </div>
         </div>
       </div>
@@ -140,6 +133,58 @@
       </button>
     </div>
 
+    <!-- Activity Details Modal -->
+    <div class="modal-overlay" v-if="hasSelectedActivity()" @click="closeActivityDetails" role="presentation">
+      <div class="modal" @click.stop ref="activityModal"
+           role="dialog" aria-modal="true" :aria-labelledby="'activity-modal-title'"
+           @keydown="handleModalKeydown">
+        <div class="modal-header">
+          <h2 class="modal-title" :id="'activity-modal-title'">{{ selectedActivity?.title }}</h2>
+          <button class="close-button" ref="activityCloseBtn" @click="closeActivityDetails" aria-label="Close modal">×</button>
+        </div>
+
+        <div class="modal-body" v-if="selectedActivity">
+          <div class="modal-tags">
+            <span class="booking-tag" :class="selectedActivity.type">
+              {{ getTypeLabel(selectedActivity.type) }}
+            </span>
+            <span class="booking-tag" :class="getStatusClass(selectedActivity)">
+              {{ getStatusText(selectedActivity) }}
+            </span>
+          </div>
+
+          <p class="modal-description">{{ selectedActivity.description }}</p>
+
+          <ul class="modal-list">
+            <li>
+              <strong>Date:</strong>
+              {{ formatDate(selectedActivity.date) }}
+            </li>
+            <li>
+              <strong>Time:</strong>
+              {{ formatTime(selectedActivity.date) }} ({{ selectedActivity.duration }}min)
+            </li>
+            <li>
+              <strong>Location:</strong>
+              {{ selectedActivity.location }}
+            </li>
+            <li>
+              <strong>Instructor:</strong>
+              {{ selectedActivity.instructor }}
+            </li>
+            <li>
+              <strong>Participants:</strong>
+              {{ selectedActivity.currentParticipants }}/{{ selectedActivity.maxParticipants }} participants
+            </li>
+            <li>
+              <strong>Price:</strong>
+              {{ selectedActivity.price > 0 ? '$' + selectedActivity.price : 'Free' }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <!-- Cancel Booking Modal -->
     <div v-if="showCancelModal" class="modal-overlay" @click="closeCancelModal">
       <div class="modal" @click.stop>
@@ -161,7 +206,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { getDocs, collection, updateDoc, doc, query, where } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 
@@ -184,10 +229,13 @@ const bookings = ref([])
 const activities = ref([])
 const isLoading = ref(true)
 
+// Activity details modal state
+const selectedActivity = ref(null)
+const lastFocusedBeforeModal = ref(null)
+const activityModal = ref(null)
+const activityCloseBtn = ref(null)
+
 // Computed
-const confirmedBookings = computed(() => {
-  return bookings.value.filter(booking => booking.status === 'confirmed')
-})
 
 const upcomingBookings = computed(() => {
   return bookings.value.filter(booking => {
@@ -199,31 +247,28 @@ const upcomingBookings = computed(() => {
 const pastBookings = computed(() => {
   return bookings.value.filter(booking => {
     const activity = getActivityById(booking.activityId)
-    return activity && new Date(activity.date) < new Date()
+    return booking.status === 'confirmed' && activity && new Date(activity.date) < new Date()
   })
 })
 
-const bookingFilters = computed(() => [
-  { id: 'all', label: 'All Bookings', count: bookings.value.length },
-  { id: 'confirmed', label: 'Confirmed', count: confirmedBookings.value.length },
-  { id: 'upcoming', label: 'Upcoming', count: upcomingBookings.value.length },
-  { id: 'past', label: 'Past', count: pastBookings.value.length },
-  { id: 'cancelled', label: 'Cancelled', count: bookings.value.filter(b => b.status === 'cancelled').length }
-])
+const bookingFilters = computed(() => {
+  const cancelledCount = bookings.value.filter(b => b.status === 'cancelled').length
+  const activeBookingsCount = bookings.value.filter(b => b.status !== 'cancelled').length
+  return [
+    { id: 'all', label: 'All Bookings', count: activeBookingsCount },
+    { id: 'upcoming', label: 'Upcoming', count: upcomingBookings.value.length },
+    { id: 'done', label: 'Done', count: pastBookings.value.length },
+    { id: 'cancelled', label: 'Cancelled', count: cancelledCount }
+  ]
+})
 
 const filteredBookings = computed(() => {
-  switch (activeFilter.value) {
-    case 'confirmed':
-      return confirmedBookings.value
-    case 'upcoming':
-      return upcomingBookings.value
-    case 'past':
-      return pastBookings.value
-    case 'cancelled':
-      return bookings.value.filter(booking => booking.status === 'cancelled')
-    default:
-      return bookings.value
+  const filterMap = {
+    'upcoming': upcomingBookings.value,
+    'done': pastBookings.value,
+    'cancelled': bookings.value.filter(booking => booking.status === 'cancelled')
   }
+  return filterMap[activeFilter.value] || bookings.value.filter(b => b.status !== 'cancelled')
 })
 
 const totalPages = computed(() => {
@@ -241,49 +286,26 @@ const getActivityById = (activityId) => {
   return activities.value.find(activity => activity.id === activityId)
 }
 
-const getActivityTitle = (activityId) => {
+// Generic method to get activity property with fallback
+const getActivityProperty = (activityId, property, fallback = '') => {
   const activity = getActivityById(activityId)
-  return activity ? activity.title : 'Activity not found'
+  return activity ? activity[property] : fallback
 }
 
-const getActivityDescription = (activityId) => {
-  const activity = getActivityById(activityId)
-  return activity ? activity.description : ''
-}
-
-const getActivityLocation = (activityId) => {
-  const activity = getActivityById(activityId)
-  return activity ? activity.location : ''
-}
-
-const getActivityInstructor = (activityId) => {
-  const activity = getActivityById(activityId)
-  return activity ? activity.instructor : ''
-}
-
-const getActivityPrice = (activityId) => {
-  const activity = getActivityById(activityId)
-  return activity ? activity.price : 0
-}
+const getActivityTitle = (activityId) => getActivityProperty(activityId, 'title', 'Activity not found')
+const getActivityDescription = (activityId) => getActivityProperty(activityId, 'description')
+const getActivityLocation = (activityId) => getActivityProperty(activityId, 'location')
+const getActivityInstructor = (activityId) => getActivityProperty(activityId, 'instructor')
+const getActivityPrice = (activityId) => getActivityProperty(activityId, 'price', 0)
 
 const formatActivityDate = (activityId) => {
   const activity = getActivityById(activityId)
-  if (!activity) return ''
-  return new Date(activity.date).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
+  return activity ? formatDate(activity.date) : ''
 }
 
 const formatActivityTime = (activityId) => {
   const activity = getActivityById(activityId)
-  if (!activity) return ''
-  return new Date(activity.date).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return activity ? formatTime(activity.date) : ''
 }
 
 const formatBookingDate = (date) => {
@@ -313,13 +335,99 @@ const formatBookingDate = (date) => {
   })
 }
 
-const getStatusLabel = (status) => {
-  const labels = {
-    'confirmed': 'Confirmed',
-    'cancelled': 'Cancelled',
-    'waitlist': 'Waitlist'
+const getStatusLabel = (booking) => {
+  // If booking is cancelled, always show cancelled
+  if (booking.status === 'cancelled') {
+    return 'Cancelled'
   }
-  return labels[status] || status
+
+  // If booking is waitlist, always show waitlist
+  if (booking.status === 'waitlist') {
+    return 'Waitlist'
+  }
+
+  // For confirmed bookings, check if the activity is in the past
+  if (booking.status === 'confirmed') {
+    const activity = getActivityById(booking.activityId)
+    if (activity && new Date(activity.date) < new Date()) {
+      return 'Done'
+    }
+    return 'Confirmed'
+  }
+
+  return booking.status
+}
+
+const getBookingStatusClass = (booking) => {
+  // If booking is cancelled, always show cancelled
+  if (booking.status === 'cancelled') {
+    return 'cancelled'
+  }
+
+  // If booking is waitlist, always show waitlist
+  if (booking.status === 'waitlist') {
+    return 'waitlist'
+  }
+
+  // For confirmed bookings, check if the activity is in the past
+  if (booking.status === 'confirmed') {
+    const activity = getActivityById(booking.activityId)
+    if (activity && new Date(activity.date) < new Date()) {
+      return 'done'
+    }
+    return 'confirmed'
+  }
+
+  return booking.status
+}
+
+// Activity modal helper methods
+const getTypeLabel = (type) => {
+  const labels = {
+    'lecture': 'Lecture',
+    'support-group': 'Support Group',
+    'meditation': 'Meditation',
+    'art-therapy': 'Art Therapy',
+    'exercise': 'Exercise',
+    'social': 'Social Event'
+  }
+  return labels[type] || type
+}
+
+const getStatusClass = (activity) => {
+  const now = new Date()
+  const activityDate = new Date(activity.date)
+
+  if (activity.status === 'cancelled') return 'cancelled'
+  if (activityDate < now) return 'past'
+  if (activity.currentParticipants >= activity.maxParticipants) return 'full'
+  return 'active'
+}
+
+const getStatusText = (activity) => {
+  const now = new Date()
+  const activityDate = new Date(activity.date)
+
+  if (activity.status === 'cancelled') return 'Cancelled'
+  if (activityDate < now) return 'Past'
+  if (activity.currentParticipants >= activity.maxParticipants) return 'Full'
+  return 'Active'
+}
+
+const formatDate = (date) => {
+  return new Date(date).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+const formatTime = (date) => {
+  return new Date(date).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const canCancelBooking = (booking) => {
@@ -329,11 +437,6 @@ const canCancelBooking = (booking) => {
   return new Date(activity.date) > new Date()
 }
 
-const isPastBooking = (booking) => {
-  const activity = getActivityById(booking.activityId)
-  if (!activity) return false
-  return new Date(activity.date) < new Date()
-}
 
 const cancelBooking = (booking) => {
   const activity = getActivityById(booking.activityId)
@@ -350,14 +453,57 @@ const closeCancelModal = () => {
 }
 
 const viewActivityDetails = (activityId) => {
-  // TODO: Implement activity details modal
-  console.log('View activity details:', activityId)
+  const activity = getActivityById(activityId)
+  if (activity) selectActivity(activity)
 }
 
-const rateActivity = (booking) => {
-  // TODO: Implement rating modal
-  console.log('Rate activity:', booking)
+// Activity details modal methods
+const selectActivity = (activity) => {
+  lastFocusedBeforeModal.value = document.activeElement
+  selectedActivity.value = activity
+  nextTick(() => {
+    const btn = activityCloseBtn.value
+    if (btn?.focus) btn.focus()
+  })
 }
+
+const closeActivityDetails = () => {
+  selectedActivity.value = null
+  if (lastFocusedBeforeModal.value?.focus) {
+    lastFocusedBeforeModal.value.focus()
+  }
+}
+
+const hasSelectedActivity = () => {
+  return selectedActivity.value !== null
+}
+
+const handleModalKeydown = (e) => {
+  if (e.key === 'Escape') {
+    closeActivityDetails()
+    return
+  }
+
+  if (e.key === 'Tab') {
+    const modal = activityModal.value
+    if (!modal) return
+
+    const focusable = modal.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    const [firstFocusable, lastFocusable] = [focusable[0], focusable[focusable.length - 1]]
+    const activeElement = document.activeElement
+
+    if (e.shiftKey && activeElement === firstFocusable) {
+      lastFocusable.focus()
+      e.preventDefault()
+    } else if (!e.shiftKey && activeElement === lastFocusable) {
+      firstFocusable.focus()
+      e.preventDefault()
+    }
+  }
+}
+
 
 // Data loading methods
 const loadBookings = async () => {
@@ -435,20 +581,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.my-bookings-section {
+.my-bookings-list {
   padding: 0;
 }
 
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
 /* booking-filters now uses global .toggle-tabs/.toggle-tab */
-
 .filter-count {
   font-size: 0.75rem;
   opacity: 0.7;
@@ -462,7 +599,6 @@ onMounted(() => {
 }
 
 /* Use global card styles */
-
 .loading-state {
   text-align: center;
   padding: 3rem 1rem;
@@ -561,11 +697,6 @@ onMounted(() => {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .section-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .booking-filters {
     justify-content: center;
   }

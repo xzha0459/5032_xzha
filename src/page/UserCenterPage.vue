@@ -86,7 +86,7 @@
             </div>
 
             <!-- List View -->
-            <MyBookingsSection
+            <MyBookingsList
               v-if="viewMode === 'list'"
               :user="user"
               @cancel-booking="handleCancelBooking"
@@ -123,7 +123,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useAuth } from '@/utils/useAuth.js'
-import MyBookingsSection from '@/section/UserCenterPage/MyBookingsSection.vue'
+import MyBookingsList from '@/section/UserCenterPage/MyBookingsList.vue'
 import MyBookingCalendar from '@/section/UserCenterPage/MyBookingCalendar.vue'
 import MoodHistory from '@/section/UserCenterPage/MoodHistory.vue'
 
@@ -171,7 +171,6 @@ const userDisplayName = computed(() => {
 // Methods
 const handleCancelBooking = (booking) => {
   console.log('Cancel booking:', booking)
-  // MyBookingsSection now handles the cancellation internally
 }
 
 const handleBookingSelected = (data) => {

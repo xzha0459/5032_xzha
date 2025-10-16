@@ -37,22 +37,10 @@
       </div>
 
       <!-- Mood Chart -->
-      <div class="chart-section">
-        <h3 class="section-title">Mood Trend (Last 7 Days)</h3>
-        <div class="mood-chart">
-          <div class="chart-container">
-            <div
-              v-for="(day, index) in weeklyMoodData"
-              :key="index"
-              class="chart-bar"
-              :style="{ height: `${(day.score / 10) * 100}%` }"
-            >
-              <div class="bar-value">{{ day.score }}</div>
-              <div class="bar-label">{{ day.label }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <MoodTrendChart :moodEntries="moodEntries" />
+
+      <!-- Mood Word Cloud -->
+      <MoodWordCloud :moodEntries="moodEntries" />
 
       <!-- Recent Entries -->
       <div class="entries-section">
@@ -122,6 +110,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 import { useAuth } from '@/utils/useAuth.js'
+import MoodWordCloud from '@/components/visualization/MoodWordCloud.vue'
+import MoodTrendChart from '@/components/visualization/MoodTrendChart.vue'
 
 const { user } = useAuth()
 
@@ -194,32 +184,6 @@ const mostCommonMood = computed(() => {
   return moodMap[mostCommon[0]]?.label || 'N/A'
 })
 
-const weeklyMoodData = computed(() => {
-  const last7Days = []
-  const today = new Date()
-
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today)
-    date.setDate(today.getDate() - i)
-
-    const dayEntries = moodEntries.value.filter(entry => {
-      const entryDate = new Date(entry.createdAt)
-      return entryDate.toDateString() === date.toDateString()
-    })
-
-    const avgScore = dayEntries.length > 0
-      ? dayEntries.reduce((sum, entry) => sum + moodMap[entry.mood]?.score || 0, 0) / dayEntries.length
-      : 0
-
-    last7Days.push({
-      label: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      score: Math.round(avgScore),
-      date: date.toISOString()
-    })
-  }
-
-  return last7Days
-})
 
 const filteredEntries = computed(() => {
   if (selectedFilter.value === 'all') {
@@ -416,52 +380,6 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
-/* Chart */
-.mood-chart {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.chart-container {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  height: 200px;
-  padding: 2rem 1rem 2rem 1rem;
-  position: relative;
-}
-
-.chart-bar {
-  flex: 1;
-  margin: 0 0.25rem;
-  background: linear-gradient(to top, var(--forest-deep), var(--forest-light));
-  border-radius: 4px 4px 0 0;
-  position: relative;
-  min-height: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: end;
-}
-
-.bar-value {
-  position: absolute;
-  top: -1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--forest-deep);
-}
-
-.bar-label {
-  position: absolute;
-  bottom: -1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
 
 
 /* Entries */

@@ -23,7 +23,6 @@
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="full">Full</option>
-            <option value="cancelled">Cancelled</option>
             <option value="past">Past</option>
           </select>
         </div>
@@ -195,7 +194,7 @@ const { isAdminUser } = useAuth()
 const selectedType = ref('all')
 const selectedStatus = ref('all')
 const currentPage = ref(1)
-const itemsPerPage = 6
+const itemsPerPage = 4
 const selectedActivity = ref(null)
 const showActivityDetails = ref(false)
 const lastFocusedBeforeModal = ref(null)
@@ -226,8 +225,6 @@ const filteredActivities = computed(() => {
           return activity.status === 'active' &&
                  activity.currentParticipants >= activity.maxParticipants &&
                  activityDate >= now
-        case 'cancelled':
-          return activity.status === 'cancelled'
         case 'past':
           return activityDate < now
         default:
@@ -236,8 +233,32 @@ const filteredActivities = computed(() => {
     })
   }
 
-  // Sort by date
-  return filtered.sort((a, b) => new Date(a.date) - new Date(b.date))
+  // Sort by status priority (Active first), then by date
+  return filtered.sort((a, b) => {
+    const now = new Date()
+    const aDate = new Date(a.date)
+    const bDate = new Date(b.date)
+
+    // Determine status priority
+    const getStatusPriority = (activity) => {
+      const activityDate = new Date(activity.date)
+      if (activity.status === 'cancelled') return 3
+      if (activityDate < now) return 2 // Past
+      if (activity.status === 'active' &&
+          activity.currentParticipants < activity.maxParticipants) return 0 // Active
+      return 1 // Full
+    }
+
+    const aPriority = getStatusPriority(a)
+    const bPriority = getStatusPriority(b)
+
+    // First sort by priority, then by date
+    if (aPriority !== bPriority) {
+      return aPriority - bPriority
+    }
+
+    return aDate - bDate
+  })
 })
 
 const totalPages = computed(() => {

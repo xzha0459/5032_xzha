@@ -544,6 +544,11 @@ textarea.input {
   color: #388e3c;
 }
 
+.booking-tag.done {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
 .booking-tag.waitlist {
   background: #fff3e0;
   color: #f57c00;

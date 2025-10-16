@@ -178,7 +178,7 @@ const confirmBooking = async () => {
     await loadUserBookings()
 
     // 显示成功消息
-    alert('Booking confirmed! You will receive a confirmation email shortly.')
+    alert('Booking confirmed!')
 
     // 关闭模态框
     closeBookingModal()
