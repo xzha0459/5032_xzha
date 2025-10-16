@@ -15,21 +15,44 @@
           <button class="close-button" ref="emailCloseBtn" @click="closeEmailModal" aria-label="Close modal">×</button>
         </div>
 
-        <div class="modal-body">
+        <div class="modal-body" @click="closeUserDropdown">
           <form @submit.prevent="handleSubmit">
-              <div class="modal-group">
-                <label class="modal-description">Recipient Email *</label>
-                <input
-                  type="email"
-                  v-model="form.to"
-                  placeholder="Enter recipient email"
-                  required
-                  class="input"
-                />
+              <div class="form-group">
+                <label class="form-label">Recipient *</label>
+                <div class="user-selector" @click.stop>
+                  <input
+                    type="text"
+                    v-model="userSearchQuery"
+                    @focus="showUserDropdown = true"
+                    @input="filterUsers"
+                    placeholder="Search users..."
+                    class="input"
+                    ref="userSearchInput"
+                  />
+                  <div v-if="showUserDropdown && filteredUsers.length > 0" class="email-user-dropdown">
+                    <div
+                      v-for="user in filteredUsers"
+                      :key="user.id"
+                      @click="selectUser(user)"
+                      class="user-option"
+                    >
+                      <div class="user-info">
+                        <div class="user-name">{{ user.displayName || user.email }}</div>
+                        <div class="small" style="color: var(--text-secondary);">{{ user.email }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="selectedUser" class="selected-user">
+                    <span class="selected-user-info">
+                      {{ selectedUser.displayName || selectedUser.email }}
+                    </span>
+                    <button type="button" @click="clearSelectedUser" class="clear-user-btn">×</button>
+                  </div>
+                </div>
               </div>
 
-              <div class="modal-group">
-                <label class="modal-description">Email Subject *</label>
+              <div class="form-group">
+                <label class="form-label">Email Subject *</label>
                 <input
                   type="text"
                   v-model="form.subject"
@@ -39,8 +62,8 @@
                 />
               </div>
 
-              <div class="modal-group">
-                <label class="modal-description">Email Content *</label>
+              <div class="form-group">
+                <label class="form-label">Email Content *</label>
                 <textarea
                   v-model="form.message"
                   placeholder="Enter email content"
@@ -50,15 +73,15 @@
                 ></textarea>
               </div>
 
-              <div class="modal-group">
-                <label class="modal-description">Attachment (Optional)</label>
+              <div class="form-group">
+                <label class="form-label">Attachment (Optional)</label>
                 <input
                   type="file"
                   @change="handleFileUpload"
                   ref="fileInput"
                   class="input"
                 />
-                <div v-if="form.attachmentName" class="file-info">
+                <div v-if="form.attachmentName" class="small">
                   Selected: {{ form.attachmentName }}
                 </div>
               </div>
@@ -77,7 +100,9 @@
 </template>
 
 <script>
-import { reactive, ref, nextTick } from 'vue'
+import { reactive, ref, nextTick, onMounted } from 'vue'
+import { getDocs, collection } from 'firebase/firestore'
+import { db } from '@/firebase.js'
 
 export default {
   name: 'EmailSender',
@@ -86,7 +111,16 @@ export default {
     const emailModal = ref(null)
     const emailCloseBtn = ref(null)
     const emailOpenBtn = ref(null)
+    const userSearchInput = ref(null)
     let lastFocusedBeforeEmailModal = null
+
+    // User selection related
+    const users = ref([])
+    const filteredUsers = ref([])
+    const selectedUser = ref(null)
+    const userSearchQuery = ref('')
+    const showUserDropdown = ref(false)
+
     const openEmailModal = () => {
       lastFocusedBeforeEmailModal = document.activeElement
       showModal.value = true
@@ -97,6 +131,9 @@ export default {
 
     const closeEmailModal = () => {
       showModal.value = false
+      showUserDropdown.value = false
+      userSearchQuery.value = ''
+      selectedUser.value = null
       if (lastFocusedBeforeEmailModal && lastFocusedBeforeEmailModal.focus) {
         lastFocusedBeforeEmailModal.focus()
       } else if (emailOpenBtn.value && emailOpenBtn.value.focus) {
@@ -125,6 +162,7 @@ export default {
         first.focus();
       }
     }
+
     const isLoading = ref(false)
     const error = ref(null)
     const success = ref(false)
@@ -136,6 +174,60 @@ export default {
       attachmentBase64: null,
       attachmentName: null
     })
+
+    // Load users from Firestore
+    const loadUsers = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'users'))
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        // Filter out admin users
+        users.value = docs.filter(user => user.role !== 'admin')
+        filteredUsers.value = users.value
+      } catch (error) {
+        console.error('Failed to load users:', error)
+        users.value = []
+        filteredUsers.value = []
+      }
+    }
+
+    // Filter users based on search query
+    const filterUsers = () => {
+      if (!userSearchQuery.value.trim()) {
+        filteredUsers.value = users.value
+      } else {
+        const query = userSearchQuery.value.toLowerCase()
+        filteredUsers.value = users.value.filter(user =>
+          user.email.toLowerCase().includes(query) ||
+          (user.displayName && user.displayName.toLowerCase().includes(query))
+        )
+      }
+    }
+
+    // Select a user
+    const selectUser = (user) => {
+      selectedUser.value = user
+      form.to = user.email
+      userSearchQuery.value = ''
+      showUserDropdown.value = false
+    }
+
+    // Clear selected user
+    const clearSelectedUser = () => {
+      selectedUser.value = null
+      form.to = ''
+      userSearchQuery.value = ''
+      showUserDropdown.value = false
+      nextTick(() => {
+        if (userSearchInput.value) {
+          userSearchInput.value.focus()
+        }
+      })
+    }
+
+    // Close user dropdown when clicking outside
+    const closeUserDropdown = () => {
+      showUserDropdown.value = false
+    }
 
     const handleFileUpload = (event) => {
       const file = event.target.files[0]
@@ -191,6 +283,11 @@ export default {
     }
 
     const handleSubmit = async () => {
+      if (!selectedUser.value) {
+        error.value = 'Please select a recipient'
+        return
+      }
+
       const emailData = {
         to: form.to,
         subject: form.subject,
@@ -208,6 +305,8 @@ export default {
         form.message = ''
         form.attachmentBase64 = null
         form.attachmentName = null
+        selectedUser.value = null
+        userSearchQuery.value = ''
         // Reset file input
         const fileInput = document.querySelector('input[type="file"]')
         if (fileInput) {
@@ -216,30 +315,121 @@ export default {
       }
     }
 
+    // Load users when component mounts
+    onMounted(() => {
+      loadUsers()
+    })
+
     return {
       showModal,
       emailModal,
       emailCloseBtn,
       emailOpenBtn,
+      userSearchInput,
       form,
       isLoading,
       error,
       success,
+      users,
+      filteredUsers,
+      selectedUser,
+      userSearchQuery,
+      showUserDropdown,
       openEmailModal,
       closeEmailModal,
       handleEmailModalKeydown,
       handleFileUpload,
-      handleSubmit
+      handleSubmit,
+      loadUsers,
+      filterUsers,
+      selectUser,
+      clearSelectedUser,
+      closeUserDropdown
     }
   }
 }
 </script>
 
-<style scoped>
-.file-info {
-  margin-top: 5px;
-  font-size: 12px;
-  color: var(--text-secondary);
+<style>
+.user-selector {
+  position: relative;
 }
 
+.email-user-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border-light);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 2px 8px var(--shadow-medium);
+}
+
+.user-option {
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color var(--transition);
+}
+
+.user-option:hover {
+  background-color: var(--forest-light);
+}
+
+.user-option:last-child {
+  border-bottom: none;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 500;
+  color: var(--forest-dark);
+  margin-bottom: 2px;
+}
+
+.selected-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #e8f5e8;
+  border: 1px solid #c3e6c3;
+  border-radius: var(--border-radius);
+  margin-top: 8px;
+}
+
+.selected-user-info {
+  font-weight: 500;
+  color: var(--forest-dark);
+}
+
+.clear-user-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color var(--transition);
+}
+
+.clear-user-btn:hover {
+  background-color: var(--forest-light);
+  color: var(--text-primary);
+}
 </style>

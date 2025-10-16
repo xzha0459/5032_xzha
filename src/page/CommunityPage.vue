@@ -63,9 +63,13 @@ import { useAuth } from '@/utils/useAuth.js'
 import { getDocs, collection, addDoc, updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 import ActivityListSection from '@/section/CommunityPage/ActivityListSection.vue'
+import { useEmailSender } from '@/utils/useEmailSender.js'
 
 // Use auth composable
 const { isAuthenticated, isLoading: authLoading, user } = useAuth()
+
+// Use email sender composable
+const { sendBookingConfirmationEmail } = useEmailSender()
 
 // State
 const activities = ref([])
@@ -177,8 +181,21 @@ const confirmBooking = async () => {
     await loadActivities()
     await loadUserBookings()
 
+    // 发送预订确认邮件
+    try {
+      const emailSent = await sendBookingConfirmationEmail(user.value.email, activity)
+      if (emailSent) {
+        console.log('Booking confirmation email sent successfully')
+      } else {
+        console.warn('Failed to send booking confirmation email, but booking was successful')
+      }
+    } catch (emailError) {
+      console.error('Error sending booking confirmation email:', emailError)
+      // 邮件发送失败不影响预订成功
+    }
+
     // 显示成功消息
-    alert('Booking confirmed!')
+    alert('Booking confirmed! A confirmation email will be sent to your email address.')
 
     // 关闭模态框
     closeBookingModal()

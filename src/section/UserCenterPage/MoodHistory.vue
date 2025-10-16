@@ -244,8 +244,62 @@ const getMoodLabel = (mood) => {
   return moodMap[mood]?.label || 'Unknown'
 }
 
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
+function parseToDate(value) {
+  if (!value) return null
+  if (value instanceof Date) return value
+
+  if (typeof value === 'string') {
+    // Handle human readable format like "13 October 2025 at 22:36:23 UTC+8"
+    if (value.includes(' at ') && value.includes(' UTC')) {
+      // Extract date and time parts
+      const parts = value.split(' at ')
+      if (parts.length === 2) {
+        const datePart = parts[0] // "13 October 2025"
+        const timePart = parts[1].split(' UTC')[0] // "22:36:23"
+        const timezonePart = parts[1].split(' UTC')[1] // "+8"
+
+        // Parse the date
+        const parsedDate = new Date(`${datePart} ${timePart}`)
+        if (!isNaN(parsedDate)) {
+          // Adjust for timezone offset
+          const offset = parseInt(timezonePart.replace('+', ''))
+          parsedDate.setHours(parsedDate.getHours() - offset)
+          return parsedDate
+        }
+      }
+    }
+
+    // Handle ISO format and other standard formats
+    const d = new Date(value)
+    return isNaN(d) ? null : d
+  }
+
+  if (typeof value === 'number') {
+    const d = new Date(value)
+    return isNaN(d) ? null : d
+  }
+
+  if (typeof value === 'object') {
+    // Handle Firestore Timestamp
+    if (typeof value.toDate === 'function') {
+      return value.toDate()
+    }
+    if ('seconds' in value && 'nanoseconds' in value) {
+      return new Date(value.seconds * 1000 + Math.floor(value.nanoseconds / 1e6))
+    }
+    // Handle Firestore Timestamp with _Timestamp property
+    if (value._Timestamp) {
+      if (value._Timestamp.seconds) {
+        return new Date(value._Timestamp.seconds * 1000)
+      }
+    }
+  }
+  return null
+}
+
+const formatDate = (dateInput) => {
+  const date = parseToDate(dateInput)
+  if (!date) return 'Invalid date'
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
