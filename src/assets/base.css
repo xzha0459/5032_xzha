@@ -121,7 +121,7 @@ h6 { font-size: 0.4rem; }
 }
 
 .page-subtitle {
-    font-size: 1rem;
+  font-size: 1rem;
   margin: 0 auto;
 }
 
@@ -577,8 +577,8 @@ textarea.input {
 
 /* Map type-specific colors align with prior type-badge styles */
 .booking-tag.lecture {
-  background: var(--forest-light);
-  color: var(--forest-deep);
+  background: var(--forest-deep);
+  color: var(--forest-light);
 }
 
 .booking-tag.support-group {

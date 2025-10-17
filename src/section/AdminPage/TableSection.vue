@@ -506,7 +506,7 @@
   <div v-if="showUserModal" class="modal-overlay" @click="closeUserModal">
     <div class="modal" @click.stop>
       <div class="modal-header">
-        <h2>{{ isEditingUser ? 'Edit User' : 'Create User' }}</h2>
+        <h2>Edit User</h2>
         <button class="close-button" @click="closeUserModal">×</button>
       </div>
       <div class="modal-body">
@@ -564,7 +564,7 @@
           <div class="modal-footer">
             <button type="button" class="btn action" @click="closeUserModal">Cancel</button>
             <button type="submit" class="btn action primary" :disabled="isSavingUser">
-              {{ isSavingUser ? 'Saving...' : (isEditingUser ? 'Update User' : 'Create User') }}
+              {{ isSavingUser ? 'Saving...' : 'Update User' }}
             </button>
           </div>
         </form>
@@ -620,7 +620,7 @@ const CATEGORIES = computed(() => {
   return [...fixedCategories, ...Array.from(dynamicCategories).sort()]
 })
 
-const pageSize = 10
+const itemsPerPage = 10
 
 // Table state - strategies
 const strategyGlobalQuery = ref('')
@@ -703,30 +703,21 @@ const formatDate = (dateString) => {
 
 // User Management Methods
 const openUserModal = (row) => {
-  if (row) {
-    // Edit mode
-    isEditingUser.value = true
-    editingUser.value = row
-    userForm.value = {
-      id: row.id || '',
-      username: row.username || '',
-      email: row.email || '',
-      role: row.role || 'user',
-      age: row.age || '',
-      createdAt: row.createdAt || ''
-    }
-  } else {
-    // Create mode - reset form
-    isEditingUser.value = false
-    editingUser.value = null
-    userForm.value = {
-      id: '',
-      username: '',
-      email: '',
-      role: 'user',
-      age: '',
-      createdAt: ''
-    }
+  if (!row) {
+    console.error('Cannot open user modal: no user provided')
+    return
+  }
+
+  // Edit mode only
+  isEditingUser.value = true
+  editingUser.value = row
+  userForm.value = {
+    id: row.id || '',
+    username: row.username || '',
+    email: row.email || '',
+    role: row.role || 'user',
+    age: row.age || '',
+    createdAt: row.createdAt || ''
   }
   showUserModal.value = true
 }
@@ -854,12 +845,12 @@ const processTable = (data, globalQuery, filters, sort, page) => {
   })
 
   // Paginate
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const totalPages = Math.max(1, Math.ceil(sorted.length / itemsPerPage))
   const currentPage = Math.min(page, totalPages)
-  const start = (currentPage - 1) * pageSize
+  const start = (currentPage - 1) * itemsPerPage
 
   return {
-    data: sorted.slice(start, start + pageSize),
+    data: sorted.slice(start, start + itemsPerPage),
     totalPages,
     currentPage
   }
@@ -919,8 +910,13 @@ const openStrategyModal = (row) => {
 
 // CRUD Operations
 const submitStrategy = async () => {
+  // Determine if we're editing an existing strategy or creating a new one
+  const isEditing = editingStrategy.value && editingStrategy.value.id
+
   const payload = {
-    id: (strategyForm.value.id || '').trim() || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now())),
+    // When editing, use the ID from the form (which can be changed by user)
+    // When creating new, generate a new ID if form ID is empty
+    id: isEditing ? (strategyForm.value.id || editingStrategy.value.id) : (strategyForm.value.id || '').trim() || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now())),
     title: strategyForm.value.title.trim(),
     category: strategyForm.value.category.trim(),
     description: (strategyForm.value.description || '').trim(),
@@ -933,6 +929,11 @@ const submitStrategy = async () => {
   }
 
   try {
+    // If editing and ID changed, delete the old document first
+    if (isEditing && editingStrategy.value.id !== payload.id) {
+      await deleteDoc(doc(db, 'strategies', editingStrategy.value.id))
+    }
+
     await setDoc(doc(db, 'strategies', payload.id), payload, { merge: true })
     emit('update:strategies')
   } catch (error) {
@@ -1083,7 +1084,24 @@ const submitUser = async () => {
   isSavingUser.value = true
 
   try {
-    // TODO: Implement user save/update logic
+    if (!isEditingUser.value || !editingUser.value?.id) {
+      console.error('Cannot save user: no user selected for editing')
+      return
+    }
+
+    const userData = {
+      username: userForm.value.username.trim(),
+      email: userForm.value.email.trim(),
+      role: userForm.value.role,
+      age: userForm.value.age ? parseInt(userForm.value.age) : null,
+      createdAt: userForm.value.createdAt || editingUser.value.createdAt
+    }
+
+    // Update existing user only
+    await setDoc(doc(db, 'users', editingUser.value.id), userData, { merge: true })
+
+    // Emit update to refresh users list
+    emit('update:users')
     closeUserModal()
   } catch (error) {
     console.error('Failed to save user:', error)
@@ -1101,7 +1119,9 @@ const confirmDeleteUser = async () => {
   if (!userToDelete.value) return
 
   try {
-    // TODO: Implement user deletion logic
+    await deleteDoc(doc(db, 'users', userToDelete.value.id))
+    // Emit update to refresh users list
+    emit('update:users')
     closeUserDeleteModal()
   } catch (error) {
     console.error('Failed to delete user:', error)

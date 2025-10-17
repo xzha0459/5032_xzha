@@ -268,6 +268,7 @@ export default {
   height: 60px;
   background: var(--forest-dark);
   border-radius: 50%;
+  border: 2px solid var(--forest-light);
   display: flex;
   align-items: center;
   justify-content: center;

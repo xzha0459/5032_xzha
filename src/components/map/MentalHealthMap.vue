@@ -207,8 +207,17 @@ export default {
             console.log('Location obtained:', {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy
+              accuracy: position.coords.accuracy,
+              altitude: position.coords.altitude,
+              altitudeAccuracy: position.coords.altitudeAccuracy,
+              heading: position.coords.heading,
+              speed: position.coords.speed
             })
+
+            // Check if accuracy is too poor (likely IP-based)
+            if (position.coords.accuracy > 1000) {
+              console.warn('Location accuracy is poor (>1km), likely IP-based. Consider using GPS.')
+            }
 
             userLocation.value = [position.coords.longitude, position.coords.latitude]
 
@@ -216,7 +225,7 @@ export default {
             new google.maps.Marker({
               position: { lat: position.coords.latitude, lng: position.coords.longitude },
               map: map.value,
-              title: 'Your Location',
+              title: `Your Location (Accuracy: ${Math.round(position.coords.accuracy)}m)`,
               icon: {
                 url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
                 scaledSize: new google.maps.Size(35, 35)
@@ -237,6 +246,11 @@ export default {
             console.log('Error getting location:', error)
             // If user denies location, use default Melbourne location
             loadMentalHealthServices()
+          },
+          {
+            enableHighAccuracy: true,  // Force GPS instead of IP
+            timeout: 10000,           // 10 second timeout
+            maximumAge: 0             // Don't use cached location
           }
         )
       } else {

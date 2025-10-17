@@ -48,43 +48,9 @@
         <div class="card-body">
           <h3 class="card-title">{{ activity.title }}</h3>
           <p class="card-description">{{ activity.description }}</p>
-
-          <div class="card-list">
-            <div class="card-item">
-              <span class="card-icon">Date:</span>
-              <span>{{ formatDate(activity.date) }}</span>
-            </div>
-            <div class="card-item">
-              <span class="card-icon">Time:</span>
-              <span>{{ formatTime(activity.date) }} ({{ activity.duration }}min)</span>
-            </div>
-            <div class="card-item">
-              <span class="card-icon">Location:</span>
-              <span>{{ activity.location }}</span>
-            </div>
-            <div class="card-item">
-              <span class="card-icon">Participants:</span>
-              <span>{{ activity.currentParticipants }}/{{ activity.maxParticipants }} participants</span>
-            </div>
-            <div class="card-item">
-              <span class="card-icon">Instructor:</span>
-              <span>{{ activity.instructor }}</span>
-            </div>
-            <div class="card-item">
-              <span class="card-icon">Price:</span>
-              <span>{{ activity.price > 0 ? '$' + activity.price : 'Free' }}</span>
-            </div>
-          </div>
         </div>
 
         <div class="card-footer">
-          <button
-            class="btn primary"
-            :disabled="!canBookActivity(activity)"
-            @click.stop="bookActivity(activity)"
-          >
-            {{ getBookingButtonText(activity) }}
-          </button>
           <button class="btn secondary" @click.stop="viewDetails(activity)">
             View Details
           </button>
@@ -167,6 +133,19 @@
               {{ selectedActivity.price > 0 ? '$' + selectedActivity.price : 'Free' }}
             </li>
           </ul>
+
+          <div class="modal-footer">
+            <button
+              class="btn primary"
+              :disabled="!canBookActivity(selectedActivity)"
+              @click="bookActivity(selectedActivity)"
+            >
+              {{ getBookingButtonText(selectedActivity) }}
+            </button>
+            <button class="btn secondary" @click="closeActivityDetails">
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -194,7 +173,7 @@ const { isAdminUser } = useAuth()
 const selectedType = ref('all')
 const selectedStatus = ref('all')
 const currentPage = ref(1)
-const itemsPerPage = 4
+const itemsPerPage = 6
 const selectedActivity = ref(null)
 const showActivityDetails = ref(false)
 const lastFocusedBeforeModal = ref(null)
@@ -402,7 +381,8 @@ const bookActivity = (activity) => {
 
   if (canBookActivity(activity)) {
     emit('book-activity', activity)
-    // Don't close activity details modal - let the booking modal handle it
+    // Close activity details modal after booking
+    closeActivityDetails()
   }
 }
 
