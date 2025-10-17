@@ -14,11 +14,37 @@
 
       <!-- Community content -->
       <div v-else-if="isAuthenticated">
-        <!-- Activities List Only -->
+        <!-- View Toggle -->
+        <div class="toggle-tabs">
+          <button
+            :class="['toggle-tab', { active: currentView === 'list' }]"
+            @click="currentView = 'list'"
+          >
+            List View
+          </button>
+          <button
+            :class="['toggle-tab', { active: currentView === 'calendar' }]"
+            @click="currentView = 'calendar'"
+          >
+            Calendar View
+          </button>
+        </div>
+
+        <!-- Activities List -->
         <ActivityListSection
+          v-if="currentView === 'list'"
           ref="activityListRef"
           :activities="activities"
           @book-activity="handleBookActivity"
+          @show-activity-details="openActivityDetailsModal"
+        />
+
+        <!-- Activity Calendar -->
+        <ActivityCalendar
+          v-if="currentView === 'calendar'"
+          :activities="activities"
+          @activity-selected="handleActivitySelected"
+          @date-selected="handleDateSelected"
         />
       </div>
 
@@ -54,6 +80,68 @@
         </div>
       </div>
     </div>
+
+    <!-- Activity Details Modal -->
+    <div v-if="showActivityDetailsModal" class="modal-overlay" @click="closeActivityDetailsModal">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h2>{{ selectedActivityForDetails?.title }}</h2>
+          <button class="close-button" @click="closeActivityDetailsModal">×</button>
+        </div>
+        <div class="modal-body" v-if="selectedActivityForDetails">
+          <div class="modal-tags">
+            <span class="booking-tag" :class="selectedActivityForDetails.type">
+              {{ getTypeLabel(selectedActivityForDetails.type) }}
+            </span>
+            <span class="booking-tag" :class="getStatusClass(selectedActivityForDetails)">
+              {{ getStatusText(selectedActivityForDetails) }}
+            </span>
+          </div>
+
+          <p class="modal-description">{{ selectedActivityForDetails.description }}</p>
+
+          <ul class="modal-list">
+            <li>
+              <strong>Date:</strong>
+              {{ formatDate(selectedActivityForDetails.date) }}
+            </li>
+            <li>
+              <strong>Time:</strong>
+              {{ formatTime(selectedActivityForDetails.date) }} ({{ selectedActivityForDetails.duration }}min)
+            </li>
+            <li>
+              <strong>Location:</strong>
+              {{ selectedActivityForDetails.location }}
+            </li>
+            <li>
+              <strong>Instructor:</strong>
+              {{ selectedActivityForDetails.instructor }}
+            </li>
+            <li>
+              <strong>Participants:</strong>
+              {{ selectedActivityForDetails.currentParticipants }}/{{ selectedActivityForDetails.maxParticipants }} participants
+            </li>
+            <li>
+              <strong>Price:</strong>
+              {{ selectedActivityForDetails.price > 0 ? '$' + selectedActivityForDetails.price : 'Free' }}
+            </li>
+          </ul>
+
+          <div class="modal-footer">
+            <button
+              class="btn primary"
+              :disabled="!canBookActivity(selectedActivityForDetails)"
+              @click="bookActivityFromDetails(selectedActivityForDetails)"
+            >
+              {{ getBookingButtonText(selectedActivityForDetails) }}
+            </button>
+            <button class="btn secondary" @click="closeActivityDetailsModal">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -63,6 +151,7 @@ import { useAuth } from '@/utils/useAuth.js'
 import { getDocs, collection, addDoc, updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 import ActivityListSection from '@/section/CommunityPage/ActivityListSection.vue'
+import ActivityCalendar from '@/components/ActivityCalendar.vue'
 import { useEmailSender } from '@/utils/useEmailSender.js'
 
 // Use auth composable
@@ -78,6 +167,11 @@ const selectedActivity = ref(null)
 const showBookingModal = ref(false)
 const isBooking = ref(false)
 const activityListRef = ref(null)
+const currentView = ref('list') // 'list' or 'calendar'
+
+// Activity Details Modal State
+const selectedActivityForDetails = ref(null)
+const showActivityDetailsModal = ref(false)
 
 // 已移除社区导航
 
@@ -87,14 +181,100 @@ const handleBookActivity = (activity) => {
   showBookingModal.value = true
 }
 
+const handleActivitySelected = (activity) => {
+  // Handle activity selection from calendar - show details modal
+  openActivityDetailsModal(activity)
+}
+
+// Activity Details Modal Methods
+const openActivityDetailsModal = (activity) => {
+  selectedActivityForDetails.value = activity
+  showActivityDetailsModal.value = true
+}
+
+const closeActivityDetailsModal = () => {
+  showActivityDetailsModal.value = false
+  selectedActivityForDetails.value = null
+}
+
+const bookActivityFromDetails = (activity) => {
+  closeActivityDetailsModal()
+  handleBookActivity(activity)
+}
+
+// Helper Methods for Activity Details Modal
+const getTypeLabel = (type) => {
+  const labels = {
+    'lecture': 'Lecture',
+    'support-group': 'Support Group',
+    'meditation': 'Meditation',
+    'art-therapy': 'Art Therapy',
+    'exercise': 'Exercise',
+    'social': 'Social Event'
+  }
+  return labels[type] || type
+}
+
+const getStatusClass = (activity) => {
+  const now = new Date()
+  const activityDate = new Date(activity.date)
+
+  if (activity.status === 'cancelled') return 'cancelled'
+  if (activityDate < now) return 'past'
+  if (activity.currentParticipants >= activity.maxParticipants) return 'full'
+  return 'active'
+}
+
+const getStatusText = (activity) => {
+  const now = new Date()
+  const activityDate = new Date(activity.date)
+
+  if (activity.status === 'cancelled') return 'Cancelled'
+  if (activityDate < now) return 'Past'
+  if (activity.currentParticipants >= activity.maxParticipants) return 'Full'
+  return 'Active'
+}
+
+const canBookActivity = (activity) => {
+  const activityDate = new Date(activity.date)
+  return activity.status === 'active' &&
+         activity.currentParticipants < activity.maxParticipants &&
+         activityDate > new Date()
+}
+
+const getBookingButtonText = (activity) => {
+  if (activity.status !== 'active') return 'Cancelled'
+  if (activity.currentParticipants >= activity.maxParticipants) return 'Full'
+  if (new Date(activity.date) < new Date()) return 'Past Event'
+  return 'Book Now'
+}
+
+const formatDate = (date) => {
+  return new Date(date).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+const formatTime = (date) => {
+  return new Date(date).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const handleDateSelected = (date) => {
+  // Handle date selection from calendar
+  console.log('Date selected from calendar:', date)
+  // You can add additional logic here, like filtering activities by date
+}
+
 const closeBookingModal = () => {
   showBookingModal.value = false
   selectedActivity.value = null
   isBooking.value = false
-  // Close activity details modal if it's open
-  if (activityListRef.value && activityListRef.value.closeActivityDetails) {
-    activityListRef.value.closeActivityDetails()
-  }
 }
 
 const confirmBooking = async () => {

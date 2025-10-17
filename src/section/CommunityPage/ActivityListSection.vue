@@ -29,7 +29,7 @@
       </div>
     </div>
 
-    <div class="activities-grid" v-if="filteredActivities.length > 0">
+    <div v-if="filteredActivities.length > 0" class="activities-grid">
       <div
         v-for="activity in paginatedActivities"
         :key="activity.id"
@@ -51,7 +51,7 @@
         </div>
 
         <div class="card-footer">
-          <button class="btn secondary" @click.stop="viewDetails(activity)">
+          <button class="btn secondary" @click.stop="selectActivity(activity)">
             View Details
           </button>
         </div>
@@ -67,7 +67,7 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination" v-if="totalPages > 1">
+    <div v-if="totalPages > 1" class="pagination">
       <button
         class="btn action"
         :disabled="currentPage === 1"
@@ -84,77 +84,11 @@
         Next
       </button>
     </div>
-
-    <!-- Activity Details Modal -->
-    <div class="modal-overlay" v-if="hasSelectedActivity()" @click="closeActivityDetails" role="presentation">
-      <div class="modal" @click.stop ref="activityModal"
-           role="dialog" aria-modal="true" :aria-labelledby="'activity-modal-title'"
-           @keydown="handleModalKeydown">
-        <div class="modal-header">
-          <h2 class="modal-title" :id="'activity-modal-title'">{{ selectedActivity?.title }}</h2>
-          <button class="close-button" ref="activityCloseBtn" @click="closeActivityDetails" aria-label="Close modal">×</button>
-        </div>
-
-        <div class="modal-body" v-if="selectedActivity">
-          <div class="modal-tags">
-            <span class="booking-tag" :class="selectedActivity.type">
-              {{ getTypeLabel(selectedActivity.type) }}
-            </span>
-            <span class="booking-tag" :class="getStatusClass(selectedActivity)">
-              {{ getStatusText(selectedActivity) }}
-            </span>
-          </div>
-
-          <p class="modal-description">{{ selectedActivity.description }}</p>
-
-          <ul class="modal-list">
-            <li>
-              <strong>Date:</strong>
-              {{ formatDate(selectedActivity.date) }}
-            </li>
-            <li>
-              <strong>Time:</strong>
-              {{ formatTime(selectedActivity.date) }} ({{ selectedActivity.duration }}min)
-            </li>
-            <li>
-              <strong>Location:</strong>
-              {{ selectedActivity.location }}
-            </li>
-            <li>
-              <strong>Instructor:</strong>
-              {{ selectedActivity.instructor }}
-            </li>
-            <li>
-              <strong>Participants:</strong>
-              {{ selectedActivity.currentParticipants }}/{{ selectedActivity.maxParticipants }} participants
-            </li>
-            <li>
-              <strong>Price:</strong>
-              {{ selectedActivity.price > 0 ? '$' + selectedActivity.price : 'Free' }}
-            </li>
-          </ul>
-
-          <div class="modal-footer">
-            <button
-              class="btn primary"
-              :disabled="!canBookActivity(selectedActivity)"
-              @click="bookActivity(selectedActivity)"
-            >
-              {{ getBookingButtonText(selectedActivity) }}
-            </button>
-            <button class="btn secondary" @click="closeActivityDetails">
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
-import { useAuth } from '@/utils/useAuth'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   activities: {
@@ -164,21 +98,24 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['activity-selected', 'book-activity'])
-
-// Get user role from auth
-const { isAdminUser } = useAuth()
+const emit = defineEmits(['show-activity-details'])
 
 // State
 const selectedType = ref('all')
 const selectedStatus = ref('all')
 const currentPage = ref(1)
 const itemsPerPage = 6
-const selectedActivity = ref(null)
-const showActivityDetails = ref(false)
-const lastFocusedBeforeModal = ref(null)
-const activityModal = ref(null)
-const activityCloseBtn = ref(null)
+
+// Helper function for status priority
+const getStatusPriority = (activity) => {
+  const now = new Date()
+  const activityDate = new Date(activity.date)
+  if (activity.status === 'cancelled') return 3
+  if (activityDate < now) return 2 // Past
+  if (activity.status === 'active' &&
+      activity.currentParticipants < activity.maxParticipants) return 0 // Active
+  return 1 // Full
+}
 
 // Computed
 const filteredActivities = computed(() => {
@@ -214,19 +151,8 @@ const filteredActivities = computed(() => {
 
   // Sort by status priority (Active first), then by date
   return filtered.sort((a, b) => {
-    const now = new Date()
     const aDate = new Date(a.date)
     const bDate = new Date(b.date)
-
-    // Determine status priority
-    const getStatusPriority = (activity) => {
-      const activityDate = new Date(activity.date)
-      if (activity.status === 'cancelled') return 3
-      if (activityDate < now) return 2 // Past
-      if (activity.status === 'active' &&
-          activity.currentParticipants < activity.maxParticipants) return 0 // Active
-      return 1 // Full
-    }
 
     const aPriority = getStatusPriority(a)
     const bPriority = getStatusPriority(b)
@@ -283,116 +209,13 @@ const getStatusText = (activity) => {
   return 'Active'
 }
 
-const canBookActivity = (activity) => {
-  // Admins cannot book activities
-  if (isAdminUser.value) {
-    return false
-  }
-
-  const activityDate = new Date(activity.date)
-  return activity.status === 'active' &&
-         activity.currentParticipants < activity.maxParticipants &&
-         activityDate > new Date()
-}
-
-const getBookingButtonText = (activity) => {
-  // Show different text for admins
-  if (isAdminUser.value) {
-    return 'Admin View Only'
-  }
-
-  if (activity.status !== 'active') return 'Cancelled'
-  if (activity.currentParticipants >= activity.maxParticipants) return 'Full'
-  if (new Date(activity.date) < new Date()) return 'Past Event'
-  return 'Book Now'
-}
-
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
-const formatTime = (date) => {
-  return new Date(date).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
 const selectActivity = (activity) => {
-  // 记录触发元素以便关闭后还原焦点
-  lastFocusedBeforeModal.value = document.activeElement
-  selectedActivity.value = activity
-  showActivityDetails.value = true
-  nextTick(() => {
-    // 将焦点移到关闭按钮
-    const btn = activityCloseBtn.value
-    if (btn && btn.focus) btn.focus()
-  })
-}
-
-const closeActivityDetails = () => {
-  showActivityDetails.value = false
-  selectedActivity.value = null
-  // 关闭后把焦点还原到触发元素
-  if (lastFocusedBeforeModal.value && lastFocusedBeforeModal.value.focus) {
-    lastFocusedBeforeModal.value.focus()
-  }
-}
-
-const hasSelectedActivity = () => {
-  return selectedActivity.value !== null
-}
-
-// 焦点陷阱与ESC
-const handleModalKeydown = (e) => {
-  if (e.key === 'Escape') {
-    closeActivityDetails()
-    return
-  }
-  if (e.key !== 'Tab') return
-  const modal = activityModal.value
-  if (!modal) return
-  const focusable = modal.querySelectorAll(
-    'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-  )
-  if (!focusable.length) return
-  const first = focusable[0]
-  const last = focusable[focusable.length - 1]
-  const active = document.activeElement
-  if (e.shiftKey && active === first) {
-    e.preventDefault();
-    last.focus();
-  } else if (!e.shiftKey && active === last) {
-    e.preventDefault();
-    first.focus();
-  }
-}
-
-const bookActivity = (activity) => {
-  // Prevent admins from booking
-  if (isAdminUser.value) {
-    return
-  }
-
-  if (canBookActivity(activity)) {
-    emit('book-activity', activity)
-    // Close activity details modal after booking
-    closeActivityDetails()
-  }
-}
-
-const viewDetails = (activity) => {
-  selectActivity(activity)
+  emit('show-activity-details', activity)
 }
 
 // Expose methods for parent component
 defineExpose({
-  closeActivityDetails
+  selectActivity
 })
 </script>
 

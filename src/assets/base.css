@@ -1202,3 +1202,163 @@ table td:has(.btn.action) {
   }
 }
 
+/* ===== CALENDAR STYLES ===== */
+/* Calendar Container */
+.calendar-container {
+  background: transparent;
+  padding: 0 2rem;
+
+}
+
+/* FullCalendar Custom Styles */
+.fc {
+  font-family: inherit;
+}
+
+.fc-header-toolbar {
+  height: 50px !important;
+  margin: 0 !important;
+}
+
+.fc-toolbar-chunk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fc-button {
+  height: 36px !important;
+  padding: 6px 12px !important;
+  font-size: 0.8rem !important;
+  border-radius: 6px !important;
+  margin-right: 4px !important;
+}
+
+.fc-toolbar-title {
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+
+.fc-button:hover {
+  background: var(--forest-deep);
+  border-color: var(--forest-deep);
+}
+
+.fc-button:focus {
+  box-shadow: 0 0 0 3px rgba(34, 139, 34, 0.2);
+}
+
+.fc-button-primary:not(:disabled):active {
+  background: var(--forest-deep);
+  border-color: var(--forest-deep);
+}
+
+/* Calendar Day Grid Styles */
+
+.fc-daygrid-day-events {
+  margin: 0 !important;
+}
+
+.fc-daygrid-event {
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 500;
+}
+
+.fc-event-title {
+  font-weight: 600;
+}
+
+/* Booking Status Colors in Calendar - Only for calendar events */
+.fc-event.booking-confirmed {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+}
+
+.fc-event.booking-cancelled {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+}
+/* Activity Status Colors in Calendar - Only for calendar events */
+.fc-event.activity-active {
+  background-color: #10b981 !important;
+  border-color: #10b981 !important;
+}
+
+.fc-event.activity-full {
+  background-color: #f59e0b !important;
+  border-color: #f59e0b !important;
+}
+
+.fc-event.activity-past {
+  background-color: #6b7280 !important;
+  border-color: #6b7280 !important;
+}
+
+/* Conflict Styles */
+.booking-conflict {
+  background: repeating-linear-gradient(
+    45deg,
+    #ff6b6b,
+    #ff6b6b 10px,
+    #ff8e8e 10px,
+    #ff8e8e 20px
+  ) !important;
+  border: 2px solid #dc3545 !important;
+  animation: conflict-pulse 2s infinite;
+}
+
+@keyframes conflict-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* Calendar Event Hover Effects */
+.fc-event:hover {
+  opacity: 0.8;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+/* Calendar Day Styles */
+.fc-day-today {
+  background-color: rgba(34, 139, 34, 0.1) !important;
+}
+
+.fc-daygrid-day-number {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.fc-daygrid-day-number:hover {
+  color: var(--forest-deep);
+}
+
+/* Calendar Popover Styles */
+.fc-popover {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fc-popover-header {
+  background: var(--forest-light);
+  color: var(--forest-deep);
+  font-weight: 600;
+  border-radius: 8px 8px 0 0;
+}
+
+.fc-popover-body {
+  background: white;
+  border-radius: 0 0 8px 8px;
+}
+
+/* Responsive Calendar Styles */
+@media (max-width: 768px) {
+  .calendar-container {
+    padding: 1rem;
+  }
+}
+

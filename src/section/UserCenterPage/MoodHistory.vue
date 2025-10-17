@@ -330,7 +330,7 @@ const exportToPDF = () => {
           <h1>My Mood Diary</h1>
           <p>Generated on ${new Date().toLocaleDateString()}</p>
         </div>
-        ${moodEntries.value.map(entry => `
+        ${filteredEntries.value.map(entry => `
           <div class="entry">
             <div class="mood">${getMoodEmoji(entry.mood)} ${getMoodLabel(entry.mood)}</div>
             <div class="date">${formatDate(entry.createdAt)}</div>
@@ -347,14 +347,13 @@ const exportToPDF = () => {
 }
 
 const exportToCSV = () => {
-  const headers = ['Date', 'Mood', 'Text', 'Has Audio']
+  const headers = ['Date', 'Mood', 'Text']
   const csvContent = [
     headers.join(','),
-    ...moodEntries.value.map(entry => [
+    ...filteredEntries.value.map(entry => [
       formatDate(entry.createdAt),
       getMoodLabel(entry.mood),
-      `"${(entry.text || '').replace(/"/g, '""')}"`,
-      entry.audioBlob ? 'Yes' : 'No'
+      `"${(entry.text || '').replace(/"/g, '""')}"`
     ].join(','))
   ].join('\n')
 
